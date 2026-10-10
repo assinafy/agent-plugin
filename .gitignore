@@ -1,0 +1,16 @@
+# Publish only what the plugin needs, plus its documentation and license.
+# Everything else (tests, tooling, local agent instructions, OS and editor files,
+# environment files) stays local.
+/*
+!/.gitignore
+!/.claude-plugin/
+!/.mcp.json
+!/plugin.json
+!/mcp.json
+!/skills/
+!/assets/
+!/README.md
+!/README.en.md
+!/CHANGELOG.md
+!/LICENSE
+.DS_Store

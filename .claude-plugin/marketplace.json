@@ -1,0 +1,17 @@
+{
+  "name": "assinafy",
+  "description": "Official Assinafy plugins for AI assistants: Brazilian e-signature over the hosted Assinafy MCP server.",
+  "owner": {
+    "name": "Assinafy",
+    "url": "https://www.assinafy.com.br"
+  },
+  "plugins": [
+    {
+      "name": "assinafy",
+      "source": "./",
+      "description": "Send, track, remind, download and verify Assinafy e-signatures (Email, WhatsApp, ICP-Brasil A1/A3).",
+      "category": "productivity",
+      "version": "1.0.0"
+    }
+  ]
+}

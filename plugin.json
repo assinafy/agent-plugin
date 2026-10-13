@@ -24,7 +24,7 @@
     "com.openai": {
       "interface": {
         "displayName": "Assinafy",
-        "shortDescription": "E-signatures for Brazil",
+        "shortDescription": "AI-powered e-signatures",
         "longDescription": "Send PDFs or saved templates for legally valid electronic signature in Brazil. Choose Email, WhatsApp or ICP-Brasil digital certificate (A1/A3) verification for each signer, set the signing order, follow progress, send reminders, download the certified PDF and verify any signature hash. Assinafy only accesses the workspace and permissions you approve when you connect.",
         "developerName": "Assinafy",
         "category": "Productivity",
@@ -103,7 +103,7 @@
         "release_notes": "Version 1.1.0. Connect your Assinafy workspace with OAuth and manage e-signatures from the conversation: upload PDFs or use saved templates, request signatures by Email, WhatsApp or ICP-Brasil digital certificate (A1/A3), set the signing order, track who has signed, send reminders, change deadlines, download the certified PDF and verify signature hashes. Each task has its own tool with a clear name, and signers' CPF or CNPJ is managed in Assinafy, never requested in the conversation.",
         "translations": {
           "pt-BR": {
-            "subtitle": "Assine documentos no Brasil",
+            "subtitle": "Assinatura eletrônica com IA",
             "description": "Envie PDFs ou modelos salvos para assinatura eletrônica com validade jurídica no Brasil. Escolha verificação por e-mail, WhatsApp ou certificado digital ICP-Brasil (A1/A3) para cada signatário, defina a ordem de assinatura, acompanhe o andamento, envie lembretes, baixe o PDF certificado e verifique qualquer hash de assinatura. A Assinafy só acessa o workspace e as permissões que você aprovar ao conectar."
           }
         }

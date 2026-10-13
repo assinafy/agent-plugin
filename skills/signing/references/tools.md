@@ -1,6 +1,6 @@
 # Assinafy MCP tool reference
 
-Every tool and action exposed by `https://mcp.assinafy.com.br/mcp`, with the Assinafy
+Every tool exposed by `https://mcp.assinafy.com.br/mcp`, with the Assinafy
 REST operation it calls, its arguments, a request and a response. Arguments are sent
 as the MCP `tools/call` `arguments` object. Successful JSON results arrive both as
 `structuredContent` and as the same JSON in a text block; responses below show that
@@ -11,7 +11,7 @@ grant; a value that differs from the grant is rejected.
 
 ## Conventions
 
-- **Grouped tools** require `action` and accept only that action's arguments.
+- **One tool per operation**; each accepts only the arguments listed in its section.
 - **Timestamps** are RFC 3339 (`2026-12-31T23:59:59Z`).
 - **Lists** return `{"data": [...], "meta": {...}}`; `meta` comes from Assinafy's
   pagination headers and is omitted when absent. Pages start at 1, `per_page` max 100.
@@ -31,8 +31,9 @@ grant; a value that differs from the grant is rejected.
 
 ### Document
 
-Returned by `find_documents` `get`, `list` items, `prepare_document` and
-`request_signatures` `from_template`.
+Returned by `assinafy_get_document`, `assinafy_list_documents` items,
+`assinafy_upload_document`, `assinafy_rename_document` and
+`assinafy_create_document_from_template`.
 
 ```json
 {
@@ -98,12 +99,14 @@ Returned by `find_documents` `get`, `list` items, `prepare_document` and
 }
 ```
 
-- In `find_documents` `get`/`list`, `from_template` and `set_expiration` results, empty or
-  null fields are omitted (`assignment` until signatures are requested, `template_id`
-  unless generated from a template, empty `tags`, `copy_receivers`, `items`) and signers
-  carry no `government_id`; read it with `find_signers` `get` before a
-  `DigitalCertificate` request. `from_document` and `rename` return Assinafy's response
-  unchanged, including nulls, `government_id`, `items` and `signing_urls`.
+- In `assinafy_get_document`, `assinafy_list_documents`,
+  `assinafy_create_document_from_template` and `assinafy_set_assignment_expiration`
+  results, empty or null fields are omitted (`assignment` until signatures are
+  requested, `template_id` unless generated from a template, empty `tags`,
+  `copy_receivers`, `items`) and signers carry no `government_id`; check it with
+  `assinafy_get_signer` before a `DigitalCertificate` request.
+  `assinafy_create_assignment` and `assinafy_rename_document` return Assinafy's
+  response unchanged, including nulls, `government_id`, `items` and `signing_urls`.
 - `artifacts` gains `certificated`, `certificate-page` and `bundle` (and `pades` where
   enabled) after certification. `is_closed` becomes `true`.
 - For `collect` assignments, `items` lists each placement: `page`, `signer`, `field`,
@@ -126,11 +129,11 @@ Returned by `find_documents` `get`, `list` items, `prepare_document` and
 
 ### Signer in a request
 
-Used by `from_document`, `review_signature_request` and `place_fields`:
+Used by `assinafy_create_assignment`, `assinafy_review_signature_request` and `assinafy_place_fields`:
 
 | Field | Required | Values |
 |---|:---:|---|
-| `id` | yes | Workspace signer ID from `find_signers` or `save_signer` |
+| `id` | yes | Workspace signer ID from `assinafy_list_signers` or `assinafy_create_signer` |
 | `verification_method` | no | `Email` (default), `Whatsapp`, `DigitalCertificate` |
 | `notification_methods` | no | Any of `Email`, `Whatsapp`; default `["Email"]` |
 | `step` | no | Signing order from 1, contiguous; set on every signer or none. Same step signs in parallel |
@@ -139,8 +142,9 @@ Used by `from_document`, `review_signature_request` and `place_fields`:
 - `Whatsapp` verification needs the WhatsApp channel and a paid plan; the WhatsApp
   notification costs 0.45 credits per signer.
 - `DigitalCertificate` signs with the signer's ICP-Brasil A1 or A3 certificate. It needs
-  the Digital Certificate feature, a CPF or CNPJ in the signer's `government_id` (set it
-  with `save_signer` `update`), and the signer alone in its step, so give every signer a
+  the Digital Certificate feature, a CPF or CNPJ already registered on the signer's
+  contact in Assinafy (`government_id` in `assinafy_get_signer`; the user sets it in the
+  Assinafy app, never through these tools), and the signer alone in its step, so give every signer a
   `step` when others sign too. 0.5 credits per signer plus its notification channel.
   A CPF needs that person's e-CPF (or an e-CNPJ naming them as legal representative);
   a CNPJ needs that company's e-CNPJ.
@@ -163,15 +167,15 @@ Required for `method: "collect"`. One object per page:
 ```
 
 Geometry is in pixels of Assinafy's 150-DPI page image, from the top-left corner; keep
-each rectangle inside the page `width` and `height` from `find_documents` `get`.
-`field_id` comes from `check_fields` `list` with `include_standard: true` (types
+each rectangle inside the page `width` and `height` from `assinafy_get_document`.
+`field_id` comes from `assinafy_list_fields` with `include_standard: true` (types
 `signature`, `initial`, `signatureDate`, plus input fields).
 
 ---
 
 ## Find and inspect documents
 
-### `assinafy_find_documents` · `list`
+### `assinafy_list_documents`
 
 API: `GET /v1/accounts/{accountId}/documents`
 
@@ -184,7 +188,7 @@ with `-` for descending. `status` takes one status code.
 Request:
 
 ```json
-{"action": "list", "status": "pending_signature", "search": "Contrato", "sort": "-updated_at", "per_page": 20}
+{"status": "pending_signature", "search": "Contrato", "sort": "-updated_at", "per_page": 20}
 ```
 
 Response:
@@ -209,7 +213,7 @@ Response:
 
 Each item has the [Document](#document) fields except `resource`; `is_closed` appears only when `true`.
 
-### `assinafy_find_documents` · `get`
+### `assinafy_get_document`
 
 API: `GET /v1/documents/{documentId}`
 
@@ -219,12 +223,12 @@ Optional: none
 Request:
 
 ```json
-{"action": "get", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6"}
 ```
 
 Response: a [Document](#document).
 
-### `assinafy_find_documents` · `activities`
+### `assinafy_list_document_activities`
 
 API: `GET /v1/documents/{documentId}/activities`
 
@@ -234,7 +238,7 @@ Optional: none
 Request:
 
 ```json
-{"action": "activities", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6"}
 ```
 
 Response (newest first; `payload` varies by event, `origin` is `null` for system events):
@@ -262,7 +266,7 @@ Response (newest first; `payload` varies by event, `origin` is `null` for system
 }
 ```
 
-### `assinafy_find_documents` · `notifications`
+### `assinafy_list_whatsapp_notifications`
 
 API: `GET /v1/documents/{documentId}/assignments/{assignmentId}/whatsapp-notifications`
 
@@ -275,7 +279,7 @@ WhatsApp delivery history only; email history is in each assignment signer's
 Request:
 
 ```json
-{"action": "notifications", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8"}
 ```
 
 Response (`sent_at` is a Unix timestamp; in sandbox, messages are simulated):
@@ -335,7 +339,7 @@ Response:
 
 ## Prepare a document
 
-### `assinafy_prepare_document` · `upload`
+### `assinafy_upload_document`
 
 API: `POST /v1/accounts/{accountId}/documents`
 
@@ -348,13 +352,13 @@ Uploads without inviting anyone. `file_name` ends in `.pdf`; the decoded PDF is 
 Request:
 
 ```json
-{"action": "upload", "file_name": "Contrato de Servicos.pdf", "file_base64": "<BASE64_PDF>"}
+{"file_name": "Contrato de Servicos.pdf", "file_base64": "<BASE64_PDF>"}
 ```
 
 Response: a [Document](#document) with `status` `uploaded` and no `assignment`. It
-reaches `metadata_ready` within seconds; check with `find_documents` `get`.
+reaches `metadata_ready` within seconds; check with `assinafy_get_document`.
 
-### `assinafy_prepare_document` · `rename`
+### `assinafy_rename_document`
 
 API: `PATCH /v1/documents/{documentId}`
 
@@ -367,7 +371,7 @@ diacritics and replaces unsupported characters with dashes.
 Request:
 
 ```json
-{"action": "rename", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "name": "Contrato de Servicos v2.pdf"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "name": "Contrato de Servicos v2.pdf"}
 ```
 
 Response: the updated [Document](#document).
@@ -376,7 +380,7 @@ Response: the updated [Document](#document).
 
 ## Request signatures
 
-### `assinafy_request_signatures` · `from_pdf`
+### `assinafy_send_pdf_for_signature`
 
 API: `POST /v1/accounts/{accountId}/documents`, `GET /v1/documents/{documentId}`,
 `GET /v1/accounts/{accountId}/signers`, `POST /v1/accounts/{accountId}/signers`,
@@ -394,7 +398,6 @@ Request:
 
 ```json
 {
-  "action": "from_pdf",
   "file_name": "Contrato de Servicos.pdf",
   "file_base64": "<BASE64_PDF>",
   "signers": [
@@ -437,11 +440,11 @@ Response:
 ```
 
 `document` is the upload response, so its `status` and `pages` are from upload time; call
-`find_documents` `get` for current status and pages. A failure after upload names the retained `document_id`; continue with `from_document`.
+`assinafy_get_document` for current status and pages. A failure after upload names the retained `document_id`; continue with `assinafy_create_assignment`.
 If the access token expires within `max_wait_secs` plus two minutes, nothing is uploaded
 and the error says how many seconds remain.
 
-### `assinafy_request_signatures` · `from_document`
+### `assinafy_create_assignment`
 
 API: `POST /v1/documents/{documentId}/assignments`
 
@@ -458,7 +461,6 @@ Request (signing order, WhatsApp, certificate and a copy receiver):
 
 ```json
 {
-  "action": "from_document",
   "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6",
   "method": "virtual",
   "signers": [
@@ -495,7 +497,7 @@ Response: Assinafy's assignment, unchanged (abridged here). It also contains `it
 
 Later steps are notified when the previous step completes.
 
-### `assinafy_request_signatures` · `from_template`
+### `assinafy_create_document_from_template`
 
 API: `POST /v1/accounts/{accountId}/templates/{templateId}/documents`
 (plus signer lookup/creation for entries given by email)
@@ -507,7 +509,7 @@ One `signers` entry per template role:
 
 | Field | Required | Values |
 |---|:---:|---|
-| `role_id` | yes | Role from `find_templates` |
+| `role_id` | yes | Role from `assinafy_list_templates` |
 | `id` | one of | Existing signer ID |
 | `full_name`, `email` | one of | New or reused contact (exact email match is reused) |
 | `verification_method` | no | `Email`, `Whatsapp`, `DigitalCertificate` |
@@ -515,14 +517,13 @@ One `signers` entry per template role:
 | `step` | no | Contiguous from 1; all or none |
 
 `editor_fields` is `[{field_id, value}]` with the placement's `field_id` and a string
-value (validate first with `check_fields` `validate`). `tags` are tag names merged with
+value (validate first with `assinafy_validate_fields`). `tags` are tag names merged with
 the template's defaults.
 
 Request:
 
 ```json
 {
-  "action": "from_template",
   "template_id": "91324354657687980a1b2cdcedfe",
   "name": "NDA - Acme Ltda",
   "signers": [
@@ -545,7 +546,7 @@ API: `GET /v1/documents/{documentId}`, `GET /v1/accounts/{accountId}/signers/{si
 Required: `document_id`, `method`, `signers`
 Optional: `entries`, `message`, `expires_at`, `copy_receivers`
 
-Same arguments as `from_document`; sends nothing. MCP Apps hosts show a card whose
+Same arguments as `assinafy_create_assignment`; sends nothing. MCP Apps hosts show a card whose
 **Send** button rechecks the document and sends exactly the reviewed request.
 
 Request:
@@ -568,7 +569,7 @@ Response:
   "method": "virtual",
   "expires_at": "2026-12-31T23:59:59Z",
   "signers": [{"id": "4c0d1e2f30415263748596a7b8c9", "name": "Ana Example", "email": "ana@example.com"}],
-  "request": {"action": "from_document", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "method": "virtual", "signers": [{"id": "4c0d1e2f30415263748596a7b8c9"}], "expires_at": "2026-12-31T23:59:59Z"}
+  "request": {"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "method": "virtual", "signers": [{"id": "4c0d1e2f30415263748596a7b8c9"}], "expires_at": "2026-12-31T23:59:59Z"}
 }
 ```
 
@@ -583,7 +584,7 @@ API: `GET /v1/documents/{documentId}`, `GET /v1/accounts/{accountId}/signers/{si
 Required: `document_id`, `signers`
 Optional: `message`, `expires_at`, `copy_receivers`
 
-`from_document` arguments without `method` and `entries`; the document must be
+`assinafy_create_assignment` arguments without `method` and `entries`; the document must be
 `metadata_ready` with no assignment. MCP Apps hosts open a fullscreen editor that sends
 with `method: "collect"`. Other clients get pages and field IDs to build
 [entries](#collect-entries).
@@ -600,7 +601,7 @@ Response text: `Contrato de Servicos.pdf has 1 pages ready for field placement. 
 
 ## Follow up
 
-### `assinafy_follow_up_assignment` · `resend`
+### `assinafy_resend_notification`
 
 API: `PUT /v1/documents/{documentId}/assignments/{assignmentId}/signers/{signerId}/resend`
 
@@ -612,7 +613,7 @@ Sends one reminder on the signer's channels; may consume notification credits.
 Request:
 
 ```json
-{"action": "resend", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
 ```
 
 Response (`is_sent` means delivered to the channel, not signed):
@@ -621,7 +622,7 @@ Response (`is_sent` means delivered to the channel, not signed):
 {"is_sent": true, "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
 ```
 
-### `assinafy_follow_up_assignment` · `set_expiration`
+### `assinafy_set_assignment_expiration`
 
 API: `PUT /v1/documents/{documentId}/assignments/{assignmentId}/reset-expiration`
 
@@ -631,10 +632,10 @@ Optional: none
 Request:
 
 ```json
-{"action": "set_expiration", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "expires_at": "2026-12-31T23:59:59Z"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "expires_at": "2026-12-31T23:59:59Z"}
 ```
 
-Response: the updated assignment (as in `from_document`, without `government_id` or
+Response: the updated assignment (as in `assinafy_create_assignment`, without `government_id` or
 empty fields) with the new
 `expires_at`. No reminder is sent.
 
@@ -642,7 +643,7 @@ empty fields) with the new
 
 ## Contacts
 
-### `assinafy_find_signers` · `list`
+### `assinafy_list_signers`
 
 API: `GET /v1/accounts/{accountId}/signers`
 
@@ -652,7 +653,7 @@ Optional: `search`, `page`, `per_page`, `account_id`
 Request:
 
 ```json
-{"action": "list", "search": "ana@example.com"}
+{"search": "ana@example.com"}
 ```
 
 Response:
@@ -666,7 +667,7 @@ Response:
 }
 ```
 
-### `assinafy_find_signers` · `get`
+### `assinafy_get_signer`
 
 API: `GET /v1/accounts/{accountId}/signers/{signerId}`
 
@@ -676,7 +677,7 @@ Optional: `account_id`
 Request:
 
 ```json
-{"action": "get", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
+{"signer_id": "4c0d1e2f30415263748596a7b8c9"}
 ```
 
 Response:
@@ -685,7 +686,7 @@ Response:
 {"resource": "signer", "id": "4c0d1e2f30415263748596a7b8c9", "full_name": "Ana Example", "email": "ana@example.com", "whatsapp_phone_number": null, "government_id": null, "has_accepted_terms": false}
 ```
 
-### `assinafy_save_signer` · `create`
+### `assinafy_create_signer`
 
 API: `POST /v1/accounts/{accountId}/signers`
 
@@ -699,7 +700,7 @@ email that already exists in the workspace.
 Request:
 
 ```json
-{"action": "create", "full_name": "Bruno Example", "email": "bruno@example.com", "whatsapp_phone_number": "+5511900000000"}
+{"full_name": "Bruno Example", "email": "bruno@example.com", "whatsapp_phone_number": "+5511900000000"}
 ```
 
 Response:
@@ -708,14 +709,14 @@ Response:
 {"resource": "signer", "id": "6e0f102132435465768798a9bacb", "full_name": "Bruno Example", "email": "bruno@example.com", "whatsapp_phone_number": "+5511900000000", "government_id": null, "has_accepted_terms": false}
 ```
 
-### `assinafy_save_signer` · `update`
+### `assinafy_update_signer`
 
 API: `PUT /v1/accounts/{accountId}/signers/{signerId}`
 
-Required: `signer_id` and at least one of `full_name`, `email`, `whatsapp_phone_number`, `government_id`
-Optional: `full_name`, `email`, `whatsapp_phone_number`, `government_id`, `account_id`
+Required: `signer_id` and at least one of `full_name`, `email`, `whatsapp_phone_number`
+Optional: `full_name`, `email`, `whatsapp_phone_number`, `account_id`
 
-`government_id` is a CPF or CNPJ (digits kept), required for `DigitalCertificate`.
+Does not change `government_id` (CPF or CNPJ); that is managed in the Assinafy app.
 `email` and `whatsapp_phone_number` cannot change while that channel is verified on an
 in-flight document (`400` naming the documents). Changing an unverified channel
 invalidates earlier links and codes; resend only after the correction succeeds.
@@ -723,20 +724,20 @@ invalidates earlier links and codes; resend only after the correction succeeds.
 Request:
 
 ```json
-{"action": "update", "signer_id": "7f10213243546576879809bacbdc", "government_id": "529.982.247-25"}
+{"signer_id": "7f10213243546576879809bacbdc", "whatsapp_phone_number": "+5511911111111"}
 ```
 
 Response:
 
 ```json
-{"resource": "signer", "id": "7f10213243546576879809bacbdc", "full_name": "Carla Example", "email": "carla@example.com", "whatsapp_phone_number": null, "government_id": "52998224725", "has_accepted_terms": false}
+{"resource": "signer", "id": "7f10213243546576879809bacbdc", "full_name": "Carla Example", "email": "carla@example.com", "whatsapp_phone_number": "+5511911111111", "government_id": null, "has_accepted_terms": false}
 ```
 
 ---
 
 ## Templates and fields
 
-### `assinafy_find_templates` · `list`
+### `assinafy_list_templates`
 
 API: `GET /v1/accounts/{accountId}/templates`
 
@@ -746,7 +747,7 @@ Optional: `search`, `page`, `per_page`, `account_id`
 Request:
 
 ```json
-{"action": "list", "search": "NDA"}
+{"search": "NDA"}
 ```
 
 Response:
@@ -787,13 +788,13 @@ Response:
 }
 ```
 
-Roles with `assignment_type` `Signer` need a `from_template` entry. Placement `field_id`
+Roles with `assignment_type` `Signer` need a `assinafy_create_document_from_template` entry. Placement `field_id`
 values are what `editor_fields` uses.
 
-### `assinafy_find_templates` · `get`
+### `assinafy_get_template`
 
 API: `GET /v1/accounts/{accountId}/templates/{templateId}` (compatibility route, not in
-the public OpenAPI document; prefer `list`)
+the public OpenAPI document; prefer `assinafy_list_templates`)
 
 Required: `template_id`
 Optional: `account_id`
@@ -801,12 +802,12 @@ Optional: `account_id`
 Request:
 
 ```json
-{"action": "get", "template_id": "91324354657687980a1b2cdcedfe"}
+{"template_id": "91324354657687980a1b2cdcedfe"}
 ```
 
-Response: one template object, as in `list`.
+Response: one template object, as in `assinafy_list_templates`.
 
-### `assinafy_check_fields` · `list`
+### `assinafy_list_fields`
 
 API: `GET /v1/accounts/{accountId}/fields`
 
@@ -816,7 +817,7 @@ Optional: `include_standard`, `include_inactive`, `account_id`
 Request:
 
 ```json
-{"action": "list", "include_standard": true}
+{"include_standard": true}
 ```
 
 Response:
@@ -831,7 +832,7 @@ Response:
 }
 ```
 
-### `assinafy_check_fields` · `get`
+### `assinafy_get_field`
 
 API: `GET /v1/accounts/{accountId}/fields/{fieldId}`
 
@@ -841,12 +842,12 @@ Optional: `account_id`
 Request:
 
 ```json
-{"action": "get", "field_id": "08a9bacbdcedfe0f102132435465"}
+{"field_id": "08a9bacbdcedfe0f102132435465"}
 ```
 
-Response: one field definition, as in `list`.
+Response: one field definition, as in `assinafy_list_fields`.
 
-### `assinafy_check_fields` · `validate`
+### `assinafy_validate_fields`
 
 API: `POST /v1/accounts/{accountId}/fields/validate-multiple`
 
@@ -859,7 +860,7 @@ as strings.
 Request:
 
 ```json
-{"action": "validate", "values": [{"field_id": "08a9bacbdcedfe0f102132435465", "value": "11.222.333/0001-81"}, {"field_id": "19bacbdcedfe0f10213243546576", "value": "not-an-email"}]}
+{"values": [{"field_id": "08a9bacbdcedfe0f102132435465", "value": "11.222.333/0001-81"}, {"field_id": "19bacbdcedfe0f10213243546576", "value": "not-an-email"}]}
 ```
 
 Response:
@@ -877,7 +878,7 @@ Response:
 
 ## Download, verify, delete
 
-### `assinafy_download_document` · `artifact`
+### `assinafy_download_document`
 
 API: `GET /v1/documents/{documentId}/download/{artifactName}`
 
@@ -891,7 +892,7 @@ document's `artifacts` lists it. Binary limit 64 MiB.
 Request:
 
 ```json
-{"action": "artifact", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "artifact": "certificated"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "artifact": "certificated"}
 ```
 
 Response:
@@ -900,7 +901,7 @@ Response:
 {"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "artifact": "certificated", "base64": "<BASE64_PDF>"}
 ```
 
-### `assinafy_download_document` · `page`
+### `assinafy_download_document_page`
 
 API: `GET /v1/documents/{documentId}/pages/{pageId}/download`
 
@@ -910,7 +911,7 @@ Optional: none
 Request:
 
 ```json
-{"action": "page", "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "page_id": "2a0b1c2d3e4f5061728394a5b6c7"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "page_id": "2a0b1c2d3e4f5061728394a5b6c7"}
 ```
 
 Response:

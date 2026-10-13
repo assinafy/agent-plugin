@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "assinafy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, request signatures by Email, WhatsApp or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
   "author": {
     "name": "Assinafy",
@@ -53,25 +53,25 @@
             {
               "description": "List pending documents",
               "prompt": "Which documents are still waiting for signatures?",
-              "tools_triggered": "assinafy_find_documents",
+              "tools_triggered": "assinafy_list_documents",
               "expected_behavior": "Lists documents in pending_signature with who is still pending, without showing signing links."
             },
             {
               "description": "Discover saved templates",
               "prompt": "What signature templates do we have, and which roles does each one need?",
-              "tools_triggered": "assinafy_find_templates",
+              "tools_triggered": "assinafy_list_templates",
               "expected_behavior": "Lists the workspace's saved templates with their signer roles and fields, without sending anything."
             },
             {
               "description": "Check signing progress",
               "prompt": "Has everyone signed the service agreement?",
-              "tools_triggered": "assinafy_find_documents, assinafy_show_document",
+              "tools_triggered": "assinafy_list_documents, assinafy_show_document",
               "expected_behavior": "Finds the document and reports who signed, who is pending and the expiry."
             },
             {
               "description": "Remind a pending signer",
               "prompt": "Remind Ana to sign the service agreement.",
-              "tools_triggered": "assinafy_find_documents, assinafy_follow_up_assignment",
+              "tools_triggered": "assinafy_get_document, assinafy_resend_notification",
               "expected_behavior": "Confirms Ana is pending in the active step, then sends exactly one reminder."
             },
             {

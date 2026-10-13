@@ -177,20 +177,21 @@ Há três pontos de partida:
   envia os bytes; o servidor nunca abre caminhos do seu computador. Limite de 25 MiB
   depois de decodificado.
   - Quer enviar já, por e-mail? Diga isso; uma chamada envia o PDF, aguarda o
-    processamento e dispara os convites (`assinafy_request_signatures`, `from_pdf`).
-  - Quer preparar antes? O assistente envia o arquivo (`assinafy_prepare_document`,
-    `upload`) e pode renomeá-lo enquanto não houver solicitação (`rename`).
+    processamento e dispara os convites (`assinafy_send_pdf_for_signature`).
+  - Quer preparar antes? O assistente envia o arquivo (`assinafy_upload_document`) e
+    pode renomeá-lo enquanto não houver solicitação (`assinafy_rename_document`).
 - **Um modelo salvo.** O assistente lista os modelos com papéis e campos
-  (`assinafy_find_templates`), associa os valores informados aos campos, valida-os
-  (`assinafy_check_fields`, `validate`) e atribui uma pessoa a cada papel.
+  (`assinafy_list_templates`), associa os valores informados aos campos, valida-os
+  (`assinafy_validate_fields`) e atribui uma pessoa a cada papel
+  (`assinafy_create_document_from_template`).
 - **Um documento já na Assinafy.** O assistente encontra o documento por nome, signatário
-  ou status (`assinafy_find_documents`, `list`) e confere que ele ainda não tem
+  ou status (`assinafy_list_documents`) e confere que ele ainda não tem
   solicitação.
 
 ### 2. Escolha signatários, canais e ordem
 
-O assistente procura cada pessoa nos contatos do workspace (`assinafy_find_signers`) ou a
-cadastra (`assinafy_save_signer`). Para cada signatário você define:
+O assistente procura cada pessoa nos contatos do workspace (`assinafy_list_signers`) ou a
+cadastra (`assinafy_create_signer`). Para cada signatário você define:
 
 - **Como é notificado**: e-mail, WhatsApp ou ambos (um canal por signatário ao usar
   modelo).
@@ -221,7 +222,7 @@ Peça ao assistente para mostrar a solicitação antes de enviar.
 nada. Nos apps do Claude e no ChatGPT, o botão **Enviar** do cartão envia exatamente o que foi
 revisado; nos demais casos, confirme na conversa.
 
-O envio (`assinafy_request_signatures`) cria a solicitação e notifica os signatários.
+O envio (`assinafy_create_assignment`) cria a solicitação e notifica os signatários.
 Uma instrução explícita como "envie para a Ana" já é a sua confirmação; o assistente só
 pergunta de novo quando um destinatário, documento ou papel do modelo é ambíguo.
 Convites podem consumir documentos e créditos do seu plano.
@@ -237,7 +238,7 @@ Cada signatário, na sua vez:
    - **WhatsApp**: digita o código enviado ao WhatsApp.
    - **Certificado digital**: assina com o próprio certificado ICP-Brasil, A1 (arquivo)
      ou A3 (token ou cartão). O certificado precisa corresponder ao CPF ou CNPJ
-     cadastrado para o signatário.
+     cadastrado no contato do signatário na Assinafy.
 4. Revisa o documento, preenche os campos atribuídos e assina, ou recusa informando o
    motivo.
 
@@ -247,23 +248,24 @@ assinatura e códigos nunca aparecem na conversa.
 ### 5. Acompanhe
 
 - "Todos já assinaram?" O assistente encontra o documento e informa quem assinou e quem
-  falta (`assinafy_find_documents`, `get`, ou o cartão de status de
+  falta (`assinafy_get_document`, ou o cartão de status de
   `assinafy_show_document`, com **Lembrar** e **Atualizar**).
 - "O convite chegou para o Bruno?" O assistente lê o histórico de entrega por e-mail nos
-  dados do signatário no documento (`get`) e os detalhes de entrega por WhatsApp
-  (`notifications`).
+  dados do signatário no documento (`assinafy_get_document`) e os detalhes de entrega
+  por WhatsApp (`assinafy_list_whatsapp_notifications`).
 - "O que aconteceu com este documento?" O assistente mostra a linha do tempo de eventos
-  (`activities`).
+  (`assinafy_list_document_activities`).
 
 ### 6. Lembre ou altere o prazo
 
 - **Lembrar**: o assistente confirma que a pessoa ainda está pendente e já foi convidada (a
   etapa dela está ativa) e envia um lembrete
-  (`assinafy_follow_up_assignment`, `resend`). Cada lembrete pode consumir créditos; o
+  (`assinafy_resend_notification`). Cada lembrete pode consumir créditos; o
   assistente não repete só porque nada mudou.
-- **Prorrogar**: o assistente altera a expiração sem notificar ninguém (`set_expiration`).
-- **Corrigir um contato**: o assistente atualiza e-mail ou telefone (`assinafy_save_signer`,
-  `update`). A Assinafy bloqueia a troca de um canal que o signatário já verificou em
+- **Prorrogar**: o assistente altera a expiração sem notificar ninguém
+  (`assinafy_set_assignment_expiration`).
+- **Corrigir um contato**: o assistente atualiza e-mail ou telefone (`assinafy_update_signer`).
+  A Assinafy bloqueia a troca de um canal que o signatário já verificou em
   um documento não concluído. Trocar um canal não verificado invalida links
   anteriores; o assistente só reenvia o convite se você pedir.
 
@@ -274,15 +276,15 @@ Quando o último signatário termina, o documento passa a `certificating` e depo
 `certificated` antes de baixar.
 
 Se a solicitação expirar (`expired`), o assistente pode tentar prorrogar o prazo
-(`set_expiration`); se a Assinafy não permitir, recomece. Se um signatário recusar (`rejected_by_signer`), o assistente mostra o motivo e
-você decide se exclui o documento e envia uma nova solicitação.
+(`assinafy_set_assignment_expiration`); se a Assinafy não permitir, recomece. Se um
+signatário recusar (`rejected_by_signer`), o assistente mostra o motivo e você decide se exclui o documento e envia uma nova solicitação.
 
 ### 8. Baixe e verifique
 
 - **Baixar**: o assistente baixa o PDF certificado (`assinafy_download_document`,
   `artifact: "certificated"`) e o salva com as ferramentas de arquivo. Outros artefatos:
   `original`, `certificate-page`, `bundle` e `pades`. Prévias de página usam
-  `action: "page"`.
+  `assinafy_download_document_page`.
 - **Verificar**: informe ao assistente o hash de assinatura impresso no documento assinado.
   `assinafy_verify_document` consulta a verificação pública e retorna se é válido, o
   status, o número de signatários e a data de conclusão. Funciona sem login.
@@ -303,7 +305,7 @@ Nomes, e-mails e datas são exemplos.
 | "Envie contrato.pdf para Ana Lima, ana@example.com, para assinatura." | Envia o PDF, aguarda o processamento e manda o convite por e-mail |
 | "Suba proposta.pdf mas não envie. Chame de Proposta v2." | Envia e renomeia; ninguém é notificado |
 | "Envie a Proposta v2 primeiro para a Ana, depois para o Bruno por WhatsApp." | Ordem de assinatura com verificação por e-mail e depois WhatsApp |
-| "A Carla assina com certificado digital, CPF 529.982.247-25." | Salva o CPF e solicita assinatura com certificado |
+| "A Carla assina com certificado digital." | Confere se o contato da Carla tem CPF ou CNPJ na Assinafy e solicita assinatura com certificado |
 | "Quero revisar antes de enviar o NDA para Ana e Bruno." | Mostra a solicitação; envia só depois da sua confirmação |
 | "Coloque financeiro@example.com em cópia, sem assinar." | Adiciona um destinatário em cópia |
 | "Use o modelo de NDA para a Carla, carla@example.com, empresa Acme Ltda." | Associa e valida o campo, preenche o papel e envia |
@@ -323,18 +325,20 @@ Nomes, e-mails e datas são exemplos.
 |---|---|---|---|
 | E-mail (padrão) | Código enviado por e-mail | Um e-mail | Incluído |
 | WhatsApp | Código enviado por WhatsApp | Número de WhatsApp em E.164 (`+5511…`), notificação por WhatsApp, plano pago | 0,45 |
-| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Recurso Certificado Digital; CPF ou CNPJ do signatário; sozinho na sua etapa | 0,5 mais a notificação |
+| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Recurso Certificado Digital; CPF ou CNPJ no contato do signatário na Assinafy; sozinho na sua etapa | 0,5 mais a notificação |
 
 - Cada solicitação de assinatura usa um documento da franquia do plano, ou 1 crédito
   quando a franquia acaba. O custo do WhatsApp vem da notificação.
 - Um signatário com **CPF** precisa do próprio e-CPF, ou de um e-CNPJ que o indique como
   representante legal. Um signatário com **CNPJ** precisa do e-CNPJ dessa empresa, de
   qualquer um dos representantes.
+- O assistente nunca pede CPF ou CNPJ. Cadastre-o no contato do signatário pelo app da
+  Assinafy antes de solicitar assinatura com certificado.
 - Canais de notificação: e-mail, WhatsApp ou ambos (um por signatário com modelos).
   Notificação por WhatsApp é recurso pago.
 - Se o seu plano não inclui WhatsApp ou assinatura com certificado, a Assinafy recusa a
   solicitação (`403`) e o assistente informa qual recurso falta.
-- O envio de PDF em um passo (`from_pdf`) sempre usa e-mail. Para outros canais, ordem de
+- O envio de PDF em um passo (`assinafy_send_pdf_for_signature`) sempre usa e-mail. Para outros canais, ordem de
   assinatura ou cópias, o assistente usa o fluxo passo a passo.
 
 ## Status do documento
@@ -352,26 +356,39 @@ Nomes, e-mails e datas são exemplos.
 
 ## Ferramentas
 
-14 ferramentas cobrem 27 operações. Ferramentas agrupadas recebem `action`. As
-requisições e respostas completas de cada ferramenta e ação estão em
+27 ferramentas, uma por operação. As requisições e respostas completas de cada
+ferramenta estão em
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
 
-| Ferramenta | Ações | Efeito |
-|---|---|---|
-| `assinafy_find_documents` | `list`, `get`, `activities`, `notifications` | Leitura |
-| `assinafy_show_document` | nenhuma | Leitura; cartão de status |
-| `assinafy_prepare_document` | `upload`, `rename` | Escrita; sem convites |
-| `assinafy_request_signatures` | `from_pdf`, `from_document`, `from_template` | Envia convites |
-| `assinafy_review_signature_request` | nenhuma | Leitura; cartão de revisão |
-| `assinafy_place_fields` | nenhuma | Leitura; cartão com editor de campos |
-| `assinafy_follow_up_assignment` | `resend`, `set_expiration` | Lembrete ou alteração de prazo |
-| `assinafy_find_signers` | `list`, `get` | Leitura |
-| `assinafy_save_signer` | `create`, `update` | Escrita; sem convites |
-| `assinafy_find_templates` | `list`, `get` | Leitura |
-| `assinafy_check_fields` | `list`, `get`, `validate` | Leitura |
-| `assinafy_download_document` | `artifact`, `page` | Leitura |
-| `assinafy_verify_document` | nenhuma | Leitura; pública |
-| `assinafy_delete_document` | nenhuma | Exclusão |
+| Ferramenta | Efeito |
+|---|---|
+| `assinafy_list_documents` | Leitura |
+| `assinafy_get_document` | Leitura |
+| `assinafy_list_document_activities` | Leitura |
+| `assinafy_list_whatsapp_notifications` | Leitura |
+| `assinafy_show_document` | Leitura; cartão de status |
+| `assinafy_upload_document` | Escrita; sem convites |
+| `assinafy_rename_document` | Escrita; sem convites |
+| `assinafy_send_pdf_for_signature` | Envia convites |
+| `assinafy_create_assignment` | Envia convites |
+| `assinafy_create_document_from_template` | Envia convites |
+| `assinafy_review_signature_request` | Leitura; cartão de revisão |
+| `assinafy_place_fields` | Leitura; cartão com editor de campos |
+| `assinafy_resend_notification` | Envia um lembrete |
+| `assinafy_set_assignment_expiration` | Altera o prazo |
+| `assinafy_list_signers` | Leitura |
+| `assinafy_get_signer` | Leitura |
+| `assinafy_create_signer` | Escrita; sem convites |
+| `assinafy_update_signer` | Escrita; sem convites |
+| `assinafy_list_templates` | Leitura |
+| `assinafy_get_template` | Leitura |
+| `assinafy_list_fields` | Leitura |
+| `assinafy_get_field` | Leitura |
+| `assinafy_validate_fields` | Leitura |
+| `assinafy_download_document` | Leitura |
+| `assinafy_download_document_page` | Leitura |
+| `assinafy_verify_document` | Leitura; pública |
+| `assinafy_delete_document` | Exclusão |
 
 Criação de modelos, webhooks (incluindo entregas assinadas e múltiplos endpoints),
 usuários, chaves de API e cobrança são gerenciados na Assinafy ou pela

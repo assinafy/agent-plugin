@@ -175,20 +175,20 @@ You can start in one of three ways:
 - **A new PDF.** Attach it or point the assistant to the file. The assistant reads it and sends the
   bytes; the server never opens paths on your computer. The decoded limit is 25 MiB.
   - Want to send now to people by email? Say so; one call uploads, waits for processing
-    and sends (`assinafy_request_signatures`, `from_pdf`).
-  - Want to prepare first? The assistant uploads (`assinafy_prepare_document`, `upload`) and
-    can rename it before any request exists (`rename`).
+    and sends (`assinafy_send_pdf_for_signature`).
+  - Want to prepare first? The assistant uploads (`assinafy_upload_document`) and
+    can rename it before any request exists (`assinafy_rename_document`).
 - **A saved template.** The assistant lists templates with their roles and fields
-  (`assinafy_find_templates`), matches the values you give to template fields,
-  validates them (`assinafy_check_fields`, `validate`) and fills each role with a
-  person.
+  (`assinafy_list_templates`), matches the values you give to template fields,
+  validates them (`assinafy_validate_fields`) and fills each role with a
+  person (`assinafy_create_document_from_template`).
 - **A document already in Assinafy.** The assistant finds it by name, signer or status
-  (`assinafy_find_documents`, `list`) and checks it has no request yet.
+  (`assinafy_list_documents`) and checks it has no request yet.
 
 ### 2. Choose signers, channels and order
 
-The assistant finds each person in your workspace contacts (`assinafy_find_signers`) or
-creates them (`assinafy_save_signer`). For each signer you choose:
+The assistant finds each person in your workspace contacts (`assinafy_list_signers`) or
+creates them (`assinafy_create_signer`). For each signer you choose:
 
 - **How they are notified**: Email, WhatsApp, or both (one channel per signer when using
   a template).
@@ -216,7 +216,7 @@ Ask the assistant to show the request before sending. `assinafy_review_signature
 lists recipients, channels and expiry and sends nothing. In the Claude apps and ChatGPT, the card's
 **Send** button sends exactly what you reviewed. Otherwise, confirm in the chat.
 
-Sending (`assinafy_request_signatures`) creates the signature request and notifies the
+Sending (`assinafy_create_assignment`) creates the signature request and notifies the
 signers. An explicit instruction such as "send it to Ana" is your confirmation; the assistant
 only asks again when a recipient, document or template role is ambiguous. Invitations
 can consume your plan's documents and credits.
@@ -232,7 +232,7 @@ Each signer, in order:
    - **WhatsApp**: types the one-time code sent to their WhatsApp.
    - **Digital certificate**: signs with their own ICP-Brasil certificate, A1 (file) or
      A3 (token or smart card). The certificate must match the CPF or CNPJ registered
-     for the signer.
+     on the signer's contact in Assinafy.
 4. Reviews the document, fills any assigned fields, and signs, or declines with a reason.
 
 The assistant cannot sign, accept terms or enter codes for anyone. Signing links and codes are
@@ -241,21 +241,23 @@ never shown in the chat.
 ### 5. Follow progress
 
 - "Has everyone signed?" the assistant finds the document and reports who signed and who is
-  pending (`assinafy_find_documents`, `get`, or the `assinafy_show_document` status
+  pending (`assinafy_get_document`, or the `assinafy_show_document` status
   card with **Remind** and **Refresh**).
 - "Did the invitation reach Bruno?" the assistant reads the email delivery history in the
-  document's signer records (`get`) and WhatsApp delivery details (`notifications`).
-- "What happened with this document?" the assistant shows the event timeline (`activities`).
+  document's signer records (`assinafy_get_document`) and WhatsApp delivery details
+  (`assinafy_list_whatsapp_notifications`).
+- "What happened with this document?" the assistant shows the event timeline (`assinafy_list_document_activities`).
 
 ### 6. Remind or change the deadline
 
 - **Remind**: The assistant confirms the person is still pending and already invited (their
   step is active), then sends one reminder
-  (`assinafy_follow_up_assignment`, `resend`). Each reminder may use credits; the assistant
+  (`assinafy_resend_notification`). Each reminder may use credits; the assistant
   doesn't repeat it just because nothing changed.
-- **Extend**: The assistant changes the expiry without notifying anyone (`set_expiration`).
-- **Fix a contact**: The assistant updates the email or phone (`assinafy_save_signer`,
-  `update`). Assinafy blocks changing a channel that the signer already verified on an
+- **Extend**: The assistant changes the expiry without notifying anyone
+  (`assinafy_set_assignment_expiration`).
+- **Fix a contact**: The assistant updates the email or phone (`assinafy_update_signer`).
+  Assinafy blocks changing a channel that the signer already verified on an
   unfinished document. Changing an unverified channel invalidates earlier links;
   the assistant sends a reminder afterwards only if you ask.
 
@@ -265,7 +267,7 @@ When the last signer finishes, the document moves to `certificating` and then
 `certificated`. "100% signed" can still be `certificating`; the assistant waits for
 `certificated` before downloading.
 
-If the request expires (`expired`), the assistant can try to extend it (`set_expiration`); if
+If the request expires (`expired`), the assistant can try to extend it (`assinafy_set_assignment_expiration`); if
 Assinafy doesn't allow it, start over.
 If a signer declines (`rejected_by_signer`), the assistant shows the reason and you decide
 whether to delete the document and send a new request.
@@ -275,7 +277,7 @@ whether to delete the document and send a new request.
 - **Download**: The assistant downloads the certified PDF (`assinafy_download_document`,
   `artifact: "certificated"`) and saves it with its file tools. Other artifacts are
   `original`, `certificate-page`, `bundle` and `pades`. Page previews use
-  `action: "page"`.
+  `assinafy_download_document_page`.
 - **Verify**: give the assistant the signature hash printed on a signed document.
   `assinafy_verify_document` checks it publicly and returns whether it is valid, the
   status, signer count and completion date. It works without signing in.
@@ -296,7 +298,7 @@ Names, emails and dates are examples.
 | "Send contract.pdf to Ana Lima, ana@example.com, for signature." | Uploads, waits for processing and emails Ana |
 | "Upload proposal.pdf but don't send it. Call it Proposal v2." | Uploads and renames; nobody is notified |
 | "Send Proposal v2 to Ana first, then Bruno by WhatsApp." | Signing order with Email then WhatsApp verification |
-| "Carla signs with her digital certificate, CPF 529.982.247-25." | Saves the CPF and requests a certificate signature |
+| "Carla signs with her digital certificate." | Checks that Carla's contact has a CPF or CNPJ in Assinafy and requests a certificate signature |
 | "Let me review before sending the NDA to Ana and Bruno." | Shows the request; sends only after you confirm |
 | "Copy finance@example.com without asking them to sign." | Adds a copy receiver |
 | "Use the NDA template for Carla, carla@example.com, company Acme Ltda." | Matches and validates the field, fills the role and sends |
@@ -316,18 +318,20 @@ Names, emails and dates are examples.
 |---|---|---|---|
 | Email (default) | Code sent by email | An email address | Included |
 | WhatsApp | Code sent by WhatsApp | WhatsApp number in E.164 (`+5511…`), WhatsApp notification, paid plan | 0.45 |
-| Digital certificate | ICP-Brasil A1 or A3 certificate | Digital Certificate feature; signer's CPF or CNPJ; alone in their step | 0.5 plus the notification |
+| Digital certificate | ICP-Brasil A1 or A3 certificate | Digital Certificate feature; CPF or CNPJ on the signer's contact in Assinafy; alone in their step | 0.5 plus the notification |
 
 - Each signature request uses one document from your plan's allowance, or 1 credit once
   the allowance is used up. WhatsApp costs come from its notification.
 - A **CPF** signer needs that person's e-CPF, or an e-CNPJ naming them as legal
   representative. A **CNPJ** signer needs that company's e-CNPJ, from any of its
   representatives.
+- The assistant never asks for a CPF or CNPJ. Add it to the signer's contact in the
+  Assinafy app before requesting a certificate signature.
 - Notification channels: Email, WhatsApp, or both (one per signer with templates).
   WhatsApp notification is a paid feature.
 - When your plan doesn't include WhatsApp or certificate signing, Assinafy refuses the
   request (`403`) and the assistant tells you which feature is missing.
-- Sending a PDF in one step (`from_pdf`) always uses Email. The assistant uses the
+- Sending a PDF in one step (`assinafy_send_pdf_for_signature`) always uses Email. The assistant uses the
   step-by-step flow for other channels, signing order or copy receivers.
 
 ## Document statuses
@@ -345,26 +349,38 @@ Names, emails and dates are examples.
 
 ## Tools
 
-14 tools cover 27 operations. Grouped tools take an `action`. Full request and response
-payloads for every tool and action are in
+27 tools, one per operation. Full request and response payloads for every tool are in
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
 
-| Tool | Actions | Effect |
-|---|---|---|
-| `assinafy_find_documents` | `list`, `get`, `activities`, `notifications` | Read |
-| `assinafy_show_document` | none | Read; status card |
-| `assinafy_prepare_document` | `upload`, `rename` | Write; no invitations |
-| `assinafy_request_signatures` | `from_pdf`, `from_document`, `from_template` | Sends invitations |
-| `assinafy_review_signature_request` | none | Read; review card |
-| `assinafy_place_fields` | none | Read; field editor card |
-| `assinafy_follow_up_assignment` | `resend`, `set_expiration` | Reminder or deadline change |
-| `assinafy_find_signers` | `list`, `get` | Read |
-| `assinafy_save_signer` | `create`, `update` | Write; no invitations |
-| `assinafy_find_templates` | `list`, `get` | Read |
-| `assinafy_check_fields` | `list`, `get`, `validate` | Read |
-| `assinafy_download_document` | `artifact`, `page` | Read |
-| `assinafy_verify_document` | none | Read; public |
-| `assinafy_delete_document` | none | Delete |
+| Tool | Effect |
+|---|---|
+| `assinafy_list_documents` | Read |
+| `assinafy_get_document` | Read |
+| `assinafy_list_document_activities` | Read |
+| `assinafy_list_whatsapp_notifications` | Read |
+| `assinafy_show_document` | Read; status card |
+| `assinafy_upload_document` | Write; no invitations |
+| `assinafy_rename_document` | Write; no invitations |
+| `assinafy_send_pdf_for_signature` | Sends invitations |
+| `assinafy_create_assignment` | Sends invitations |
+| `assinafy_create_document_from_template` | Sends invitations |
+| `assinafy_review_signature_request` | Read; review card |
+| `assinafy_place_fields` | Read; field editor card |
+| `assinafy_resend_notification` | Sends a reminder |
+| `assinafy_set_assignment_expiration` | Changes the deadline |
+| `assinafy_list_signers` | Read |
+| `assinafy_get_signer` | Read |
+| `assinafy_create_signer` | Write; no invitations |
+| `assinafy_update_signer` | Write; no invitations |
+| `assinafy_list_templates` | Read |
+| `assinafy_get_template` | Read |
+| `assinafy_list_fields` | Read |
+| `assinafy_get_field` | Read |
+| `assinafy_validate_fields` | Read |
+| `assinafy_download_document` | Read |
+| `assinafy_download_document_page` | Read |
+| `assinafy_verify_document` | Read; public |
+| `assinafy_delete_document` | Delete |
 
 Template authoring, webhooks (including signed deliveries and multiple endpoints),
 users, API keys and billing are managed in Assinafy or through the

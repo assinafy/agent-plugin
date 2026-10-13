@@ -4,6 +4,20 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-13
+
+### Changed
+
+- Each task now has its own tool with a descriptive name, 27 in all: for example
+  `assinafy_list_documents`, `assinafy_get_document`, `assinafy_upload_document`,
+  `assinafy_send_pdf_for_signature`, `assinafy_create_assignment`,
+  `assinafy_create_document_from_template`, `assinafy_resend_notification` and
+  `assinafy_update_signer`. Tools no longer take an `action` argument. The skill,
+  tool reference and READMEs use the new names.
+- The assistant no longer asks for or sends a CPF or CNPJ. For ICP-Brasil digital
+  certificate signing, the signer's CPF or CNPJ is managed on the contact in the
+  Assinafy app; the assistant checks that it is present before sending.
+
 ## [1.0.0] - 2026-10-10
 
 ### Added
@@ -27,4 +41,5 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.1.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.1.0
 [1.0.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.0.0

@@ -5,11 +5,10 @@ description: Send, track, remind, download and verify Assinafy e-signatures thro
 
 # Assinafy signing flow
 
-The `assinafy` MCP server (`https://mcp.assinafy.com.br/mcp`) exposes 14 tools. Grouped
-tools take an explicit `action` and accept only that action's arguments. Full
-request and response payloads for every tool and action are in
-[references/tools.md](references/tools.md); read the relevant section before
-building a non-trivial call.
+The `assinafy` MCP server (`https://mcp.assinafy.com.br/mcp`) exposes 27 tools, one
+per operation; each accepts only its own arguments. Full request and response
+payloads for every tool are in [references/tools.md](references/tools.md); read the
+relevant section before building a non-trivial call.
 
 ## Connection
 
@@ -26,45 +25,46 @@ building a non-trivial call.
 
 | User intent | Calls, in order |
 |---|---|
-| Send a new PDF to people by email | `assinafy_request_signatures` `from_pdf` |
-| Upload now, send later | `assinafy_prepare_document` `upload` (optionally `rename`) → later `from_document` |
-| Signing order, copy receivers, WhatsApp or certificate signers | `assinafy_prepare_document` `upload` (new PDF) → `assinafy_find_signers` / `assinafy_save_signer` → `assinafy_request_signatures` `from_document` |
+| Send a new PDF to people by email | `assinafy_send_pdf_for_signature` |
+| Upload now, send later | `assinafy_upload_document` (optionally `assinafy_rename_document`) → later `assinafy_create_assignment` |
+| Signing order, copy receivers, WhatsApp or certificate signers | `assinafy_upload_document` (new PDF) → `assinafy_list_signers` / `assinafy_create_signer` → `assinafy_create_assignment` |
 | Let the user review before sending | `assinafy_review_signature_request` → send only after the user confirms |
-| Place signature/initials/date/input fields on pages | `assinafy_place_fields`, or `from_document` with `method: "collect"` and `entries` |
-| Use a saved template | `assinafy_find_templates` `list` → `assinafy_check_fields` `list`/`validate` → `assinafy_request_signatures` `from_template` |
-| "Has everyone signed?" | `assinafy_find_documents` `list` → `get`, or `assinafy_show_document` |
-| Remind a signer | `assinafy_find_documents` `get` (signer not `completed`, already `notified`, in the active `step`) → `assinafy_follow_up_assignment` `resend` |
-| Extend the deadline | `assinafy_follow_up_assignment` `set_expiration` |
-| Signed copy | `assinafy_find_documents` `get` (status `certificated`, artifact present) → `assinafy_download_document` `artifact` with `artifact: "certificated"` |
+| Place signature/initials/date/input fields on pages | `assinafy_place_fields`, or `assinafy_create_assignment` with `method: "collect"` and `entries` |
+| Use a saved template | `assinafy_list_templates` → `assinafy_list_fields` / `assinafy_validate_fields` → `assinafy_create_document_from_template` |
+| "Has everyone signed?" | `assinafy_list_documents` → `assinafy_get_document`, or `assinafy_show_document` |
+| Remind a signer | `assinafy_get_document` (signer not `completed`, already `notified`, in the active `step`) → `assinafy_resend_notification` |
+| Extend the deadline | `assinafy_set_assignment_expiration` |
+| Signed copy | `assinafy_get_document` (status `certificated`, artifact present) → `assinafy_download_document` with `artifact: "certificated"` |
 | Verify a signature hash | `assinafy_verify_document` |
-| Delete a document | `assinafy_find_documents` `get` → `assinafy_delete_document`, only on explicit request |
+| Delete a document | `assinafy_get_document` → `assinafy_delete_document`, only on explicit request |
 
 ## Verification and notification channels
 
-Set per signer in `from_document`, `from_template`, `review_signature_request` and
-`place_fields`:
+Set per signer in `assinafy_create_assignment`, `assinafy_create_document_from_template`,
+`assinafy_review_signature_request` and `assinafy_place_fields`:
 
 | `verification_method` | Requirements | Credits per signer |
 |---|---|---|
 | `Email` (default) | Signer has an email | Included |
 | `Whatsapp` | Signer has `whatsapp_phone_number` (E.164); WhatsApp notification; paid plan | 0.45 (WhatsApp notification) |
-| `DigitalCertificate` | ICP-Brasil A1 or A3 certificate; signer has `government_id` (CPF or CNPJ); alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
+| `DigitalCertificate` | ICP-Brasil A1 or A3 certificate; CPF or CNPJ registered on the contact in Assinafy; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
 
 Each request also uses one document from the plan allowance, or 1 credit once it is
 exhausted. `notification_methods` accepts `Email` and/or `Whatsapp` (WhatsApp is paid); in
-`from_template` each signer takes at most one channel. `from_pdf`
-always uses Email verification and Email notification; use `from_document` for any
-other channel. A CPF signer needs their own e-CPF (or an e-CNPJ naming them as legal
-representative); a CNPJ signer needs that company's e-CNPJ. Signers inside documents
-omit `government_id`; confirm it with `assinafy_find_signers` `get` and set it with
-`assinafy_save_signer` `update` before sending. When the plan lacks a
+`assinafy_create_document_from_template` each signer takes at most one channel.
+`assinafy_send_pdf_for_signature` always uses Email verification and Email notification;
+use `assinafy_create_assignment` for any other channel. A CPF signer needs their own
+e-CPF (or an e-CNPJ naming them as legal representative); a CNPJ signer needs that
+company's e-CNPJ. Never ask for, accept or pass a CPF or CNPJ: before a certificate
+request, confirm with `assinafy_get_signer` that `government_id` is set; if it is
+missing, ask the user to add it to the contact in the Assinafy app. When the plan lacks a
 feature, Assinafy answers `403` naming it; tell the user, do not retry.
 
 ## Document status
 
 `uploading` → `uploaded` → `metadata_processing` → `metadata_ready` →
 `pending_signature` → `certificating` → `certificated`. Alternatives: `expired` (try
-`set_expiration`; if Assinafy refuses, start over), `rejected_by_signer`, `rejected_by_user`, `failed`.
+`assinafy_set_assignment_expiration`; if Assinafy refuses, start over), `rejected_by_signer`, `rejected_by_user`, `failed`.
 
 - 100% signed can still be `certificating`. Download the signed PDF only at
   `certificated` with the `certificated` artifact listed.
@@ -77,14 +77,14 @@ feature, Assinafy answers `403` naming it; tell the user, do not retry.
 1. An explicit instruction to send, remind or delete authorizes that action for the
    named recipients; do not ask again. Ask only when a recipient, template role or
    document match is missing or ambiguous.
-2. Resolve names to IDs with the find tools and reuse IDs across turns. Do not ask the
+2. Resolve names to IDs with the list and get tools and reuse IDs across turns. Do not ask the
    user for technical identifiers, and keep IDs and base64 out of replies.
 3. Inspect before writing: never upload a document that already has an ID, never create
    a second assignment for a document that has one, and confirm a signer is pending
    before a reminder. Each invitation and reminder can consume credits.
 4. Writes are not retried automatically and composite calls are not transactional. When
    an error names a retained `document_id`, inspect it and continue with
-   `from_document` instead of uploading again.
+   `assinafy_create_assignment` instead of uploading again.
 5. Files: `file_base64` is the PDF's base64 text (max 25 MiB decoded). Where a shell is
    available, produce it with `base64 -i <file>` rather than reading the PDF as pages;
    large files may exceed what fits in one tool call, so ask the user to upload those

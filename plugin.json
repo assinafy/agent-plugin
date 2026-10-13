@@ -100,6 +100,7 @@
         "commerce_description": "Assinafy does not sell products or process payments through the plugin. Signature requests use the connected workspace's plan allowance and credits."
       },
       "publication": {
+        "release_notes": "Version 1.1.0. Connect your Assinafy workspace with OAuth and manage e-signatures from the conversation: upload PDFs or use saved templates, request signatures by Email, WhatsApp or ICP-Brasil digital certificate (A1/A3), set the signing order, track who has signed, send reminders, change deadlines, download the certified PDF and verify signature hashes. Each task has its own tool with a clear name, and signers' CPF or CNPJ is managed in Assinafy, never requested in the conversation.",
         "translations": {
           "pt-BR": {
             "subtitle": "Assine documentos no Brasil",

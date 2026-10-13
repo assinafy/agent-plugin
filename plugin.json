@@ -96,6 +96,7 @@
             }
           ]
         },
+        "demo_recording_url": "https://www.youtube.com/watch?v=ZkLtSsRq5iM",
         "commerce": false,
         "commerce_description": "Assinafy does not sell products or process payments through the plugin. Signature requests use the connected workspace's plan allowance and credits."
       },

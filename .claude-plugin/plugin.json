@@ -7,7 +7,7 @@
     "name": "Assinafy",
     "url": "https://www.assinafy.com.br"
   },
-  "homepage": "https://www.assinafy.com.br/api",
+  "homepage": "https://www.assinafy.com.br",
   "repository": "https://github.com/assinafy/agent-plugin",
   "license": "MIT",
   "keywords": ["assinafy", "e-signature", "assinatura-eletronica", "assinatura-digital", "icp-brasil", "whatsapp", "mcp", "oauth2"],

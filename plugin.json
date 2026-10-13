@@ -7,7 +7,7 @@
     "name": "Assinafy",
     "url": "https://www.assinafy.com.br"
   },
-  "homepage": "https://www.assinafy.com.br/api",
+  "homepage": "https://www.assinafy.com.br",
   "repository": "https://github.com/assinafy/agent-plugin",
   "license": "MIT",
   "keywords": [
@@ -35,7 +35,7 @@
           "Download signed PDFs",
           "Verify signatures"
         ],
-        "websiteURL": "https://www.assinafy.com.br/api",
+        "websiteURL": "https://www.assinafy.com.br",
         "supportURL": "https://www.assinafy.com.br/contato",
         "privacyPolicyURL": "https://www.assinafy.com.br/politica-de-privacidade",
         "termsOfServiceURL": "https://www.assinafy.com.br/termos-de-uso",

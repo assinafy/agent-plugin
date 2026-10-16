@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "assinafy",
-  "version": "1.1.0",
-  "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, request signatures by Email, WhatsApp or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
+  "version": "1.2.0",
+  "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, preview signing costs, request signatures by Email, WhatsApp, biometric ID verification or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
   "author": {
     "name": "Assinafy",
     "url": "https://www.assinafy.com.br"
@@ -25,11 +25,12 @@
       "interface": {
         "displayName": "Assinafy",
         "shortDescription": "AI-powered e-signatures",
-        "longDescription": "Send PDFs or saved templates for legally valid electronic signature in Brazil. Choose Email, WhatsApp or ICP-Brasil digital certificate (A1/A3) verification for each signer, set the signing order, follow progress, send reminders, download the certified PDF and verify any signature hash. Assinafy only accesses the workspace and permissions you approve when you connect.",
+        "longDescription": "Send PDFs or saved templates for legally valid electronic signature in Brazil. Preview costs, choose Email, WhatsApp, biometric ID and liveness or ICP-Brasil A1/A3 verification, set signing order, track progress, send reminders, download certified PDFs and verify signature hashes. Assinafy accesses only the workspace and permissions you approve.",
         "developerName": "Assinafy",
         "category": "Productivity",
         "capabilities": [
           "Send documents for signature",
+          "Preview signing costs",
           "Track signers",
           "Send reminders",
           "Download signed PDFs",
@@ -57,10 +58,10 @@
               "expected_behavior": "Lists documents in pending_signature with who is still pending, without showing signing links."
             },
             {
-              "description": "Discover saved templates",
-              "prompt": "What signature templates do we have, and which roles does each one need?",
-              "tools_triggered": "assinafy_list_templates",
-              "expected_behavior": "Lists the workspace's saved templates with their signer roles and fields, without sending anything."
+              "description": "Preview signing costs",
+              "prompt": "How much would it cost to send the uploaded service agreement to Ana by WhatsApp? Do not send it.",
+              "tools_triggered": "assinafy_list_documents, assinafy_create_assignment",
+              "expected_behavior": "Finds the document, then calls assinafy_create_assignment with estimate_only true, method virtual and a Whatsapp signer. Reports balances and cost without creating contacts or sending invitations."
             },
             {
               "description": "Check signing progress",
@@ -101,11 +102,11 @@
         "commerce_description": "Assinafy does not sell products or process payments through the plugin. Signature requests use the connected workspace's plan allowance and credits."
       },
       "publication": {
-        "release_notes": "Version 1.1.0. Connect your Assinafy workspace with OAuth and manage e-signatures from the conversation: upload PDFs or use saved templates, request signatures by Email, WhatsApp or ICP-Brasil digital certificate (A1/A3), set the signing order, track who has signed, send reminders, change deadlines, download the certified PDF and verify signature hashes. Each task has its own tool with a clear name, and signers' CPF or CNPJ is managed in Assinafy, never requested in the conversation.",
+        "release_notes": "Version 1.2.0. Preview signing and reminder costs in the existing tools, request biometric ID and liveness verification, save authorized government IDs on signer contacts, and track identity review before certification. The catalog retains 27 tools, with complete request/response schemas and examples.",
         "translations": {
           "pt-BR": {
             "subtitle": "Assinatura eletrônica com IA",
-            "description": "Envie PDFs ou modelos salvos para assinatura eletrônica com validade jurídica no Brasil. Escolha verificação por e-mail, WhatsApp ou certificado digital ICP-Brasil (A1/A3) para cada signatário, defina a ordem de assinatura, acompanhe o andamento, envie lembretes, baixe o PDF certificado e verifique qualquer hash de assinatura. A Assinafy só acessa o workspace e as permissões que você aprovar ao conectar."
+            "description": "Envie PDFs ou modelos salvos para assinatura eletrônica com validade jurídica no Brasil. Consulte custos, escolha verificação por e-mail, WhatsApp, documento e biometria ou certificado ICP-Brasil A1/A3, defina a ordem, acompanhe o andamento, envie lembretes, baixe PDFs certificados e verifique hashes. A Assinafy acessa somente o workspace e as permissões que você aprovar."
           }
         }
       }

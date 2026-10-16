@@ -4,7 +4,7 @@
 
 Send documents for legally valid electronic signature in Brazil without leaving
 your AI assistant. Upload a PDF or use a saved template, request signatures by **Email**,
-**WhatsApp** or **ICP-Brasil digital certificate (A1/A3)**, follow progress, remind
+**WhatsApp**, **biometric ID and liveness**, or **ICP-Brasil digital certificate (A1/A3)**, follow progress, remind
 signers, download the certified PDF and verify any signature.
 
 This repository is one plugin, and its marketplace, for Claude (Claude Code, the
@@ -190,10 +190,9 @@ You can start in one of three ways:
 The assistant finds each person in your workspace contacts (`assinafy_list_signers`) or
 creates them (`assinafy_create_signer`). For each signer you choose:
 
-- **How they are notified**: Email, WhatsApp, or both (one channel per signer when using
-  a template).
-- **How their identity is verified**: Email code, WhatsApp code, or an ICP-Brasil
-  digital certificate (A1 or A3). See [Signature methods and costs](#signature-methods-and-costs).
+- **How they are notified**: exactly one compatible channel per signer, Email or WhatsApp.
+- **How their identity is verified**: Email code, WhatsApp code, ID photos and liveness,
+  or an ICP-Brasil digital certificate (A1 or A3). See [Signature methods and costs](#signature-methods-and-costs).
 - **Order** (optional): step 1, 2, 3… People on the same step sign in parallel; the next
   step is invited after the previous one finishes. A certificate signer must be alone
   in their step, so with other signers everyone gets a step.
@@ -212,6 +211,9 @@ Two signing modes are available:
 
 ### 3. Review and send
 
+Before sending, ask for a cost preview through the matching tool with
+`estimate_only: true`; see [costs and balances](#signature-methods-and-costs).
+
 Ask the assistant to show the request before sending. `assinafy_review_signature_request`
 lists recipients, channels and expiry and sends nothing. In the Claude apps and ChatGPT, the card's
 **Send** button sends exactly what you reviewed. Otherwise, confirm in the chat.
@@ -225,7 +227,7 @@ can consume your plan's documents and credits.
 
 Each signer, in order:
 
-1. Receives the invitation by email and/or WhatsApp, with your message.
+1. Receives the invitation by the selected Email or WhatsApp channel, with your message.
 2. Opens Assinafy's signing page and accepts the terms.
 3. Confirms identity:
    - **Email**: types the one-time code sent to their email.
@@ -233,6 +235,7 @@ Each signer, in order:
    - **Digital certificate**: signs with their own ICP-Brasil certificate, A1 (file) or
      A3 (token or smart card). The certificate must match the CPF or CNPJ registered
      on the signer's contact in Assinafy.
+   - **Biometrics**: provides ID photos and a liveness check in Assinafy.
 4. Reviews the document, fills any assigned fields, and signs, or declines with a reason.
 
 The assistant cannot sign, accept terms or enter codes for anyone. Signing links and codes are
@@ -256,7 +259,8 @@ never shown in the chat.
   doesn't repeat it just because nothing changed.
 - **Extend**: The assistant changes the expiry without notifying anyone
   (`assinafy_set_assignment_expiration`).
-- **Fix a contact**: The assistant updates the email or phone (`assinafy_update_signer`).
+- **Fix a contact**: The assistant updates the email, phone or authorized
+  government ID (`assinafy_update_signer`).
   Assinafy blocks changing a channel that the signer already verified on an
   unfinished document. Changing an unverified channel invalidates earlier links;
   the assistant sends a reminder afterwards only if you ask.
@@ -266,6 +270,10 @@ never shown in the chat.
 When the last signer finishes, the document moves to `certificating` and then
 `certificated`. "100% signed" can still be `certificating`; the assistant waits for
 `certificated` before downloading.
+
+If identity verification is `InReview`, the account reviews it in Assinafy. Once
+everyone signs, the document waits at `pending_identity_review` until approval;
+rejection cancels the document and sends cancellation notices.
 
 If the request expires (`expired`), the assistant can try to extend it (`assinafy_set_assignment_expiration`); if
 Assinafy doesn't allow it, start over.
@@ -318,21 +326,30 @@ Names, emails and dates are examples.
 |---|---|---|---|
 | Email (default) | Code sent by email | An email address | Included |
 | WhatsApp | Code sent by WhatsApp | WhatsApp number in E.164 (`+5511…`), WhatsApp notification, paid plan | 0.45 |
-| Digital certificate | ICP-Brasil A1 or A3 certificate | Digital Certificate feature; CPF or CNPJ on the signer's contact in Assinafy; alone in their step | 0.5 plus the notification |
+| Digital certificate | ICP-Brasil A1 or A3 certificate | Digital Certificate feature; CPF or CNPJ saved in `government_id`; alone in their step | 0.5 plus the notification |
+| Biometrics | ID photos and liveness | ID Document + Face Match feature; valid CPF saved in `government_id` | Use the cost preview |
 
 - Each signature request uses one document from your plan's allowance, or 1 credit once
   the allowance is used up. WhatsApp costs come from its notification.
 - A **CPF** signer needs that person's e-CPF, or an e-CNPJ naming them as legal
   representative. A **CNPJ** signer needs that company's e-CNPJ, from any of its
   representatives.
-- The assistant never asks for a CPF or CNPJ. Add it to the signer's contact in the
-  Assinafy app before requesting a certificate signature.
-- Notification channels: Email, WhatsApp, or both (one per signer with templates).
+- Save an authorized CPF/CNPJ in the signer contact's `government_id` through a
+  create/update contact call or in Assinafy. Biometrics requires a valid CPF;
+  certificate signing requires the matching person or company identity.
+- Exactly one notification channel per signer: Email verification uses Email;
+  WhatsApp verification uses WhatsApp; certificate and biometrics accept either.
   WhatsApp notification is a paid feature.
 - When your plan doesn't include WhatsApp or certificate signing, Assinafy refuses the
   request (`403`) and the assistant tells you which feature is missing.
 - Sending a PDF in one step (`assinafy_send_pdf_for_signature`) always uses Email. The assistant uses the
   step-by-step flow for other channels, signing order or copy receivers.
+
+Use `estimate_only: true` on the existing PDF, assignment, template or reminder
+tool to preview balances, costs and blocking reasons. A PDF preview uploads and
+retains its document without contacts or invitations; reuse its ID to send.
+Other previews create no records or messages. See
+[cost previews and payloads](skills/signing/references/tools.md#cost-previews).
 
 ## Document statuses
 
@@ -341,6 +358,7 @@ Names, emails and dates are examples.
 | `uploading`, `uploaded`, `metadata_processing` | Being processed | no |
 | `metadata_ready` | Ready to prepare or send | yes |
 | `pending_signature` | Waiting for signers | yes |
+| `pending_identity_review` | All signed; account identity review required | no |
 | `certificating` | All signed; certification in progress | no |
 | `certificated` | Signed and certified | no |
 | `expired` | Request expired | yes |
@@ -351,6 +369,8 @@ Names, emails and dates are examples.
 
 27 tools, one per operation. Full request and response payloads for every tool are in
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
+Complete schemas and examples are in
+[`tool-payloads.json`](skills/signing/references/tool-payloads.json).
 
 | Tool | Effect |
 |---|---|
@@ -384,7 +404,10 @@ Names, emails and dates are examples.
 
 Template authoring, webhooks (including signed deliveries and multiple endpoints),
 users, API keys and billing are managed in Assinafy or through the
-[REST API](https://api.assinafy.com.br/v1/docs), not through this plugin.
+[REST API](https://api.assinafy.com.br/v1/docs). Paid plans support up to three
+account webhook endpoints. Enable signing and save the one-time creation secret;
+OAuth applications cannot retrieve or rotate it later. Account webhooks are
+independent of MCP Events and add no tools to this plugin.
 
 ## Without the plugin
 

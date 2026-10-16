@@ -4,7 +4,7 @@
 
 Envie documentos para assinatura eletrônica com validade jurídica no Brasil sem sair
 do seu assistente de IA. Use um PDF ou um modelo salvo, solicite assinaturas por **e-mail**,
-**WhatsApp** ou **certificado digital ICP-Brasil (A1/A3)**, acompanhe o andamento,
+**WhatsApp**, **documento e biometria** ou **certificado digital ICP-Brasil (A1/A3)**, acompanhe o andamento,
 lembre os signatários, baixe o PDF certificado e verifique qualquer assinatura.
 
 Este repositório é um plugin, com o seu marketplace, para o Claude (Claude Code, apps
@@ -193,10 +193,9 @@ Há três pontos de partida:
 O assistente procura cada pessoa nos contatos do workspace (`assinafy_list_signers`) ou a
 cadastra (`assinafy_create_signer`). Para cada signatário você define:
 
-- **Como é notificado**: e-mail, WhatsApp ou ambos (um canal por signatário ao usar
-  modelo).
-- **Como a identidade é verificada**: código por e-mail, código por WhatsApp ou
-  certificado digital ICP-Brasil (A1 ou A3). Veja
+- **Como é notificado**: exatamente um canal compatível por signatário, e-mail ou WhatsApp.
+- **Como a identidade é verificada**: código por e-mail, código por WhatsApp,
+  fotos de identificação e prova de vida ou certificado digital ICP-Brasil (A1 ou A3). Veja
   [Métodos de assinatura e custos](#métodos-de-assinatura-e-custos).
 - **Ordem** (opcional): etapa 1, 2, 3… Quem está na mesma etapa assina em paralelo; a
   etapa seguinte é convidada quando a anterior termina. Quem assina com certificado
@@ -217,6 +216,9 @@ Há dois modos de assinatura:
 
 ### 3. Revise e envie
 
+Antes de enviar, peça uma estimativa pela ferramenta correspondente com
+`estimate_only: true`; veja [custos e saldos](#métodos-de-assinatura-e-custos).
+
 Peça ao assistente para mostrar a solicitação antes de enviar.
 `assinafy_review_signature_request` lista destinatários, canais e prazo e não envia
 nada. Nos apps do Claude e no ChatGPT, o botão **Enviar** do cartão envia exatamente o que foi
@@ -231,7 +233,7 @@ Convites podem consumir documentos e créditos do seu plano.
 
 Cada signatário, na sua vez:
 
-1. Recebe o convite por e-mail e/ou WhatsApp, com a sua mensagem.
+1. Recebe o convite pelo canal escolhido, e-mail ou WhatsApp, com a sua mensagem.
 2. Abre a página de assinatura da Assinafy e aceita os termos.
 3. Confirma a identidade:
    - **E-mail**: digita o código enviado ao e-mail.
@@ -239,6 +241,7 @@ Cada signatário, na sua vez:
    - **Certificado digital**: assina com o próprio certificado ICP-Brasil, A1 (arquivo)
      ou A3 (token ou cartão). O certificado precisa corresponder ao CPF ou CNPJ
      cadastrado no contato do signatário na Assinafy.
+   - **Biometria**: envia as fotos de identificação e conclui a prova de vida na Assinafy.
 4. Revisa o documento, preenche os campos atribuídos e assina, ou recusa informando o
    motivo.
 
@@ -264,7 +267,8 @@ assinatura e códigos nunca aparecem na conversa.
   assistente não repete só porque nada mudou.
 - **Prorrogar**: o assistente altera a expiração sem notificar ninguém
   (`assinafy_set_assignment_expiration`).
-- **Corrigir um contato**: o assistente atualiza e-mail ou telefone (`assinafy_update_signer`).
+- **Corrigir um contato**: o assistente atualiza e-mail, telefone ou documento de
+  identificação autorizado (`assinafy_update_signer`).
   A Assinafy bloqueia a troca de um canal que o signatário já verificou em
   um documento não concluído. Trocar um canal não verificado invalida links
   anteriores; o assistente só reenvia o convite se você pedir.
@@ -274,6 +278,11 @@ assinatura e códigos nunca aparecem na conversa.
 Quando o último signatário termina, o documento passa a `certificating` e depois a
 `certificated`. "100% assinado" ainda pode estar em `certificating`; o assistente espera
 `certificated` antes de baixar.
+
+Se a verificação estiver em `InReview`, a conta responsável faz a revisão na
+Assinafy. Depois de todas as assinaturas, o documento fica em
+`pending_identity_review` até a aprovação; a recusa cancela o documento e envia
+avisos de cancelamento.
 
 Se a solicitação expirar (`expired`), o assistente pode tentar prorrogar o prazo
 (`assinafy_set_assignment_expiration`); se a Assinafy não permitir, recomece. Se um
@@ -325,21 +334,30 @@ Nomes, e-mails e datas são exemplos.
 |---|---|---|---|
 | E-mail (padrão) | Código enviado por e-mail | Um e-mail | Incluído |
 | WhatsApp | Código enviado por WhatsApp | Número de WhatsApp em E.164 (`+5511…`), notificação por WhatsApp, plano pago | 0,45 |
-| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Recurso Certificado Digital; CPF ou CNPJ no contato do signatário na Assinafy; sozinho na sua etapa | 0,5 mais a notificação |
+| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Recurso Certificado Digital; CPF ou CNPJ salvo em `government_id`; sozinho na sua etapa | 0,5 mais a notificação |
+| Biometria | Fotos de identificação e prova de vida | Recurso ID Document + Face Match; CPF válido salvo em `government_id` | Consulte a estimativa |
 
 - Cada solicitação de assinatura usa um documento da franquia do plano, ou 1 crédito
   quando a franquia acaba. O custo do WhatsApp vem da notificação.
 - Um signatário com **CPF** precisa do próprio e-CPF, ou de um e-CNPJ que o indique como
   representante legal. Um signatário com **CNPJ** precisa do e-CNPJ dessa empresa, de
   qualquer um dos representantes.
-- O assistente nunca pede CPF ou CNPJ. Cadastre-o no contato do signatário pelo app da
-  Assinafy antes de solicitar assinatura com certificado.
-- Canais de notificação: e-mail, WhatsApp ou ambos (um por signatário com modelos).
+- Salve um CPF/CNPJ autorizado em `government_id` no contato do signatário por
+  criação/atualização de contato ou na Assinafy. Biometria exige CPF válido;
+  certificado exige a identidade correspondente à pessoa ou empresa.
+- Exatamente um canal de notificação por signatário: verificação por e-mail usa
+  e-mail; WhatsApp usa WhatsApp; certificado e biometria aceitam qualquer um deles.
   Notificação por WhatsApp é recurso pago.
 - Se o seu plano não inclui WhatsApp ou assinatura com certificado, a Assinafy recusa a
   solicitação (`403`) e o assistente informa qual recurso falta.
 - O envio de PDF em um passo (`assinafy_send_pdf_for_signature`) sempre usa e-mail. Para outros canais, ordem de
   assinatura ou cópias, o assistente usa o fluxo passo a passo.
+
+Use `estimate_only: true` nas ferramentas existentes de PDF, assignment, template
+ou lembrete para consultar saldos, custos e motivos de bloqueio. A prévia de PDF
+envia e preserva o documento, sem contatos nem convites; reutilize seu ID para
+solicitar assinaturas. As demais prévias não criam registros nem enviam mensagens.
+Veja [prévias e payloads](skills/signing/references/tools.md#cost-previews).
 
 ## Status do documento
 
@@ -348,6 +366,7 @@ Nomes, e-mails e datas são exemplos.
 | `uploading`, `uploaded`, `metadata_processing` | Em processamento | não |
 | `metadata_ready` | Pronto para preparar ou enviar | sim |
 | `pending_signature` | Aguardando signatários | sim |
+| `pending_identity_review` | Todos assinaram; revisão de identidade pela conta | não |
 | `certificating` | Todos assinaram; certificação em andamento | não |
 | `certificated` | Assinado e certificado | não |
 | `expired` | Solicitação expirada | sim |
@@ -359,6 +378,8 @@ Nomes, e-mails e datas são exemplos.
 27 ferramentas, uma por operação. As requisições e respostas completas de cada
 ferramenta estão em
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
+Os schemas e exemplos completos estão em
+[`tool-payloads.json`](skills/signing/references/tool-payloads.json).
 
 | Ferramenta | Efeito |
 |---|---|
@@ -392,7 +413,10 @@ ferramenta estão em
 
 Criação de modelos, webhooks (incluindo entregas assinadas e múltiplos endpoints),
 usuários, chaves de API e cobrança são gerenciados na Assinafy ou pela
-[API REST](https://api.assinafy.com.br/v1/docs), não por este plugin.
+[API REST](https://api.assinafy.com.br/v1/docs). Planos pagos aceitam até três
+endpoints de webhook de conta. Habilite a assinatura e salve o segredo retornado
+na criação; aplicativos OAuth não podem recuperá-lo nem rotacioná-lo depois.
+Webhooks de conta são independentes de MCP Events e não adicionam ferramentas.
 
 ## Sem o plugin
 

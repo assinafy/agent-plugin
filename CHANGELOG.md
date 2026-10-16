@@ -4,6 +4,22 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-16
+
+### Added
+
+- Signing and reminder cost previews through `estimate_only` on the existing PDF,
+  assignment, template and reminder tools, with balances and blocking reasons.
+- Biometric ID and liveness verification, authorized government-ID contact updates,
+  and identity-review status guidance in the signing flow.
+- Complete request/response schemas and examples for all 27 tools.
+
+### Changed
+
+- Each signer uses one compatible Email or WhatsApp notification channel.
+- Plugin listings and both language guides include the supported signing methods
+  and cost previews.
+
 ## [1.1.0] - 2026-10-13
 
 ### Changed
@@ -41,5 +57,6 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.2.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.0
 [1.1.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.1.0
 [1.0.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.0.0

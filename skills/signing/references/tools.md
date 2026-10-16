@@ -6,6 +6,10 @@ as the MCP `tools/call` `arguments` object. Successful JSON results arrive both 
 `structuredContent` and as the same JSON in a text block; responses below show that
 JSON. IDs, names, emails and dates are fictional.
 
+For every complete input and response schema, including optional fields and cost
+previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.1;
+the sections below provide the conversational flow and representative payloads.
+
 `account_id` is optional everywhere it appears. The workspace comes from the OAuth
 grant; a value that differs from the grant is rejected.
 
@@ -26,6 +30,38 @@ grant; a value that differs from the grant is rejected.
 - **Transport**: HTTP `401` with `WWW-Authenticate: Bearer resource_metadata=...` starts
   the OAuth sign-in; `403 insufficient_scope` asks for more scopes; `429` honours
   `Retry-After`; `503` means Assinafy authorization is temporarily unavailable.
+
+## Cost previews
+
+Set `estimate_only: true` on the existing PDF send, assignment, template or reminder
+tool. Successful preview responses return `{cost_estimate: {...}}`. Check
+`has_sufficient_resources`, `blocking_reason`, balances and `total_credits` before
+sending. `blocking_reason` is null when no resource condition blocks the request.
+Estimates reserve nothing; Assinafy rechecks eligibility and balances at send time.
+
+| Tool | Preview behavior |
+|---|---|
+| `assinafy_send_pdf_for_signature` | Uploads and processes the PDF, returning `{document,cost_estimate}`; creates no contacts or invitations. Reuse `document.id` with `assinafy_create_assignment` to send. |
+| `assinafy_create_assignment` | Needs `document_id`, `method` and signing choices; signer IDs are optional. Collect also needs `entries`, without reading page geometry. Creates no assignment. |
+| `assinafy_create_document_from_template` | Needs `template_id` and one `role_id` per signer; no contact information required. Creates no contacts, documents or invitations. |
+| `assinafy_resend_notification` | Needs the normal document, assignment and signer IDs. Sends no notification. |
+
+Request example for an existing document:
+
+```json
+{"document_id":"1f0a2b3c4d5e6f708192a3b4c5d6","method":"virtual","signers":[{"verification_method":"Email"}],"estimate_only":true}
+```
+
+Response example:
+
+```json
+{"cost_estimate":{"documents":1,"credits":0,"needs_extra_document":false,"extra_document_cost":0,"total_credits":0,"breakdown":[{"code":"NotificationEmail","name":"Email Notification","cost":0,"quantity":1,"unit_cost":0}],"document_balance":10,"credit_balance":20,"has_sufficient_resources":true,"blocking_reason":null,"message":null}}
+```
+
+To send after a preview, supply real signer IDs or authorized template contacts
+and omit `estimate_only` or set it false. Keep a prepared PDF's document ID;
+rerunning the PDF upload would create another document. Review and placement
+cards accept only sending arguments, without `estimate_only`.
 
 ## Shared objects
 
@@ -103,8 +139,9 @@ Returned by `assinafy_get_document`, `assinafy_list_documents` items,
   `assinafy_create_document_from_template` and `assinafy_set_assignment_expiration`
   results, empty or null fields are omitted (`assignment` until signatures are
   requested, `template_id` unless generated from a template, empty `tags`,
-  `copy_receivers`, `items`) and signers carry no `government_id`; check it with
-  `assinafy_get_signer` before a `DigitalCertificate` request.
+  `copy_receivers`, `items`). Signers preserve `government_id` and
+  `identity_verification_status` when supplied; read the contact before a certificate
+  or biometric request. `InReview` requires manual review in Assinafy.
   `assinafy_create_assignment` and `assinafy_rename_document` return Assinafy's
   response unchanged, including nulls, `government_id`, `items` and `signing_urls`.
 - `artifacts` gains `certificated`, `certificate-page` and `bundle` (and `pades` where
@@ -121,6 +158,7 @@ Returned by `assinafy_get_document`, `assinafy_list_documents` items,
 | `uploading`, `uploaded`, `metadata_processing` | Upload received, pages being processed | no |
 | `metadata_ready` | Pages ready; can be prepared or sent | yes |
 | `pending_signature` | Signature request sent | yes |
+| `pending_identity_review` | All signed; account identity review required | no |
 | `certificating` | All signed; certificate being applied | no |
 | `certificated` | Signed and certified; artifacts available | no |
 | `expired` | Assignment expired | yes |
@@ -133,9 +171,9 @@ Used by `assinafy_create_assignment`, `assinafy_review_signature_request` and `a
 
 | Field | Required | Values |
 |---|:---:|---|
-| `id` | yes | Workspace signer ID from `assinafy_list_signers` or `assinafy_create_signer` |
-| `verification_method` | no | `Email` (default), `Whatsapp`, `DigitalCertificate` |
-| `notification_methods` | no | Any of `Email`, `Whatsapp`; default `["Email"]` |
+| `id` | yes for sending | Workspace signer ID; optional for an assignment cost preview |
+| `verification_method` | no | `Email` (default), `Whatsapp`, `DigitalCertificate`, `IdDocumentFaceMatchBasic` |
+| `notification_methods` | no | Exactly one compatible channel: `Email` or `Whatsapp`; inferred when omitted |
 | `step` | no | Signing order from 1, contiguous; set on every signer or none. Same step signs in parallel |
 
 - Every request uses one document from the plan allowance, or 1 credit once exhausted.
@@ -143,11 +181,17 @@ Used by `assinafy_create_assignment`, `assinafy_review_signature_request` and `a
   notification costs 0.45 credits per signer.
 - `DigitalCertificate` signs with the signer's ICP-Brasil A1 or A3 certificate. It needs
   the Digital Certificate feature, a CPF or CNPJ already registered on the signer's
-  contact in Assinafy (`government_id` in `assinafy_get_signer`; the user sets it in the
-  Assinafy app, never through these tools), and the signer alone in its step, so give every signer a
+  contact (`government_id` in `assinafy_get_signer`, saved through an authorized
+  create/update contact call or in Assinafy), and the signer alone in its step, so give every signer a
   `step` when others sign too. 0.5 credits per signer plus its notification channel.
   A CPF needs that person's e-CPF (or an e-CNPJ naming them as legal representative);
   a CNPJ needs that company's e-CNPJ.
+- `IdDocumentFaceMatchBasic` requires its account feature and a valid CPF in
+  `government_id`. The signer provides ID photos and liveness in Assinafy. Use
+  `estimate_only` for its per-signer cost. `InReview` is resolved by the account
+  in Assinafy; `pending_identity_review` holds certification until approval.
+- Email verification pairs with Email notification, Whatsapp with Whatsapp;
+  certificate and biometric verification accept either channel, one per signer.
 
 ### Collect entries
 
@@ -180,10 +224,11 @@ each rectangle inside the page `width` and `height` from `assinafy_get_document`
 API: `GET /v1/accounts/{accountId}/documents`
 
 Required: none
-Optional: `page`, `per_page`, `search`, `sort`, `status`, `account_id`
+Optional: `page`, `per_page`, `search`, `sort`, `status`, `account_id`, `method`, `tags`
 
 `search` matches document name or signer. `sort` is `name` or `updated_at`, prefixed
-with `-` for descending. `status` takes one status code.
+with `-` for descending. `status` takes one status code. `method` filters `virtual`
+or `collect`; `tags` is a comma-separated list of tag IDs that must all match.
 
 Request:
 
@@ -331,7 +376,7 @@ Response:
   "assignment_id": "3b0c1d2e3f405162738495a6b7c8",
   "expires_at": "2026-12-31T23:59:59Z",
   "signed": 0,
-  "signers": [{"id": "4c0d1e2f30415263748596a7b8c9", "name": "Ana Example", "signed": false}]
+  "signers": [{"id": "4c0d1e2f30415263748596a7b8c9", "name": "Ana Example", "signed": false, "step": 1}]
 }
 ```
 
@@ -385,9 +430,10 @@ Response: the updated [Document](#document).
 API: `POST /v1/accounts/{accountId}/documents`, `GET /v1/documents/{documentId}`,
 `GET /v1/accounts/{accountId}/signers`, `POST /v1/accounts/{accountId}/signers`,
 `POST /v1/documents/{documentId}/assignments`
+With `estimate_only: true`, also uses `POST /v1/documents/{documentId}/assignments/estimate-cost`; see [cost previews](#cost-previews).
 
 Required: `file_name`, `file_base64`, `signers`
-Optional: `message`, `expires_at`, `max_wait_secs`, `poll_secs`, `account_id`
+Optional: `message`, `expires_at`, `max_wait_secs`, `poll_secs`, `account_id`, `estimate_only`
 
 Uploads, waits for processing, creates or reuses each signer by exact email, and sends
 a `virtual` request with Email verification and Email notification. `signers` items
@@ -447,9 +493,10 @@ and the error says how many seconds remain.
 ### `assinafy_create_assignment`
 
 API: `POST /v1/documents/{documentId}/assignments`
+With `estimate_only: true`, also uses `POST /v1/documents/{documentId}/assignments/estimate-cost`; see [cost previews](#cost-previews).
 
 Required: `document_id`, `method`, `signers`
-Optional: `entries`, `message`, `expires_at`, `copy_receivers`
+Optional: `entries`, `message`, `expires_at`, `copy_receivers`, `estimate_only`
 
 `method` is `virtual` (sign the whole document) or `collect` (sign placed fields; needs
 `metadata_ready` and [entries](#collect-entries)). `signers` uses
@@ -501,9 +548,10 @@ Later steps are notified when the previous step completes.
 
 API: `POST /v1/accounts/{accountId}/templates/{templateId}/documents`
 (plus signer lookup/creation for entries given by email)
+With `estimate_only: true`, also uses `POST /v1/accounts/{accountId}/templates/{templateId}/documents/estimate-cost`; see [cost previews](#cost-previews).
 
 Required: `template_id`, `signers`
-Optional: `name`, `message`, `expires_at`, `tags`, `editor_fields`, `account_id`
+Optional: `name`, `message`, `expires_at`, `tags`, `editor_fields`, `account_id`, `estimate_only`
 
 One `signers` entry per template role:
 
@@ -512,7 +560,7 @@ One `signers` entry per template role:
 | `role_id` | yes | Role from `assinafy_list_templates` |
 | `id` | one of | Existing signer ID |
 | `full_name`, `email` | one of | New or reused contact (exact email match is reused) |
-| `verification_method` | no | `Email`, `Whatsapp`, `DigitalCertificate` |
+| `verification_method` | no | `Email`, `Whatsapp`, `DigitalCertificate`, `IdDocumentFaceMatchBasic` |
 | `notification_methods` | no | At most one: `Email` or `Whatsapp` |
 | `step` | no | Contiguous from 1; all or none |
 
@@ -546,7 +594,7 @@ API: `GET /v1/documents/{documentId}`, `GET /v1/accounts/{accountId}/signers/{si
 Required: `document_id`, `method`, `signers`
 Optional: `entries`, `message`, `expires_at`, `copy_receivers`
 
-Same arguments as `assinafy_create_assignment`; sends nothing. MCP Apps hosts show a card whose
+The sending arguments of `assinafy_create_assignment`, without `estimate_only`; sends nothing. MCP Apps hosts show a card whose
 **Send** button rechecks the document and sends exactly the reviewed request.
 
 Request:
@@ -584,7 +632,7 @@ API: `GET /v1/documents/{documentId}`, `GET /v1/accounts/{accountId}/signers/{si
 Required: `document_id`, `signers`
 Optional: `message`, `expires_at`, `copy_receivers`
 
-`assinafy_create_assignment` arguments without `method` and `entries`; the document must be
+`assinafy_create_assignment` arguments without `method`, `entries` and `estimate_only`; the document must be
 `metadata_ready` with no assignment. MCP Apps hosts open a fullscreen editor that sends
 with `method: "collect"`. Other clients get pages and field IDs to build
 [entries](#collect-entries).
@@ -604,9 +652,10 @@ Response text: `Contrato de Servicos.pdf has 1 pages ready for field placement. 
 ### `assinafy_resend_notification`
 
 API: `PUT /v1/documents/{documentId}/assignments/{assignmentId}/signers/{signerId}/resend`
+With `estimate_only: true`, also uses `POST /v1/documents/{documentId}/assignments/{assignmentId}/signers/{signerId}/estimate-resend-cost`; see [cost previews](#cost-previews).
 
 Required: `document_id`, `assignment_id`, `signer_id`
-Optional: none
+Optional: `estimate_only`
 
 Sends one reminder on the signer's channels; may consume notification credits.
 
@@ -635,8 +684,8 @@ Request:
 {"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "expires_at": "2026-12-31T23:59:59Z"}
 ```
 
-Response: the updated assignment (as in `assinafy_create_assignment`, without `government_id` or
-empty fields) with the new
+Response: the updated assignment (as in `assinafy_create_assignment`, omitting null or
+empty optional fields) with the new
 `expires_at`. No reminder is sent.
 
 ---
@@ -691,11 +740,12 @@ Response:
 API: `POST /v1/accounts/{accountId}/signers`
 
 Required: `full_name`
-Optional: `email`, `whatsapp_phone_number`, `account_id`
+Optional: `email`, `whatsapp_phone_number`, `account_id`, `government_id`
 
 Sends no invitation. Search first to avoid duplicate contacts; Assinafy may reject an
 email that already exists in the workspace.
-`whatsapp_phone_number` is E.164.
+`whatsapp_phone_number` is E.164. `government_id` accepts an authorized CPF or CNPJ,
+normalized and validated by Assinafy.
 
 Request:
 
@@ -713,10 +763,12 @@ Response:
 
 API: `PUT /v1/accounts/{accountId}/signers/{signerId}`
 
-Required: `signer_id` and at least one of `full_name`, `email`, `whatsapp_phone_number`
-Optional: `full_name`, `email`, `whatsapp_phone_number`, `account_id`
+Required: `signer_id` and at least one of `full_name`, `email`, `whatsapp_phone_number`, `government_id`
+Optional: `full_name`, `email`, `whatsapp_phone_number`, `account_id`, `government_id`
 
-Does not change `government_id` (CPF or CNPJ); that is managed in the Assinafy app.
+`government_id` saves an authorized CPF or CNPJ on this contact. The API normalizes
+and validates it. Use a valid CPF before biometric verification, or CPF/CNPJ before
+certificate signing; handle the value as sensitive contact data.
 `email` and `whatsapp_phone_number` cannot change while that channel is verified on an
 in-flight document (`400` naming the documents). Changing an unverified channel
 invalidates earlier links and codes; resend only after the correction succeeds.

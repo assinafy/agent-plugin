@@ -1,6 +1,6 @@
 ---
 name: signing
-description: Send, track, remind, download and verify Assinafy e-signatures through the Assinafy MCP tools. Use when the user wants a PDF or saved template signed, asks who has signed, wants a reminder sent, needs a signed (certificated) copy, wants a signature hash verified, or manages Assinafy signer contacts, including Email, WhatsApp and ICP-Brasil digital certificate (A1/A3) signing. Also for Portuguese requests such as assinar, assinatura, enviar para assinatura, lembrete, documento assinado or certificado digital.
+description: Send, track, remind, download and verify Assinafy e-signatures through the Assinafy MCP tools. Use when the user wants a PDF or saved template signed, asks who has signed, wants a reminder sent, needs a signed (certificated) copy, wants a signature hash verified, or manages Assinafy signer contacts, including cost previews, Email, WhatsApp, biometric ID and liveness, and ICP-Brasil digital certificate (A1/A3) signing. Also for Portuguese requests such as assinar, assinatura, enviar para assinatura, lembrete, documento assinado, certificado digital or biometria.
 ---
 
 # Assinafy signing flow
@@ -27,7 +27,8 @@ relevant section before building a non-trivial call.
 |---|---|
 | Send a new PDF to people by email | `assinafy_send_pdf_for_signature` |
 | Upload now, send later | `assinafy_upload_document` (optionally `assinafy_rename_document`) → later `assinafy_create_assignment` |
-| Signing order, copy receivers, WhatsApp or certificate signers | `assinafy_upload_document` (new PDF) → `assinafy_list_signers` / `assinafy_create_signer` → `assinafy_create_assignment` |
+| Signing order, copy receivers, WhatsApp, biometric or certificate signers | `assinafy_upload_document` (new PDF) → `assinafy_list_signers` / `assinafy_create_signer` → `assinafy_create_assignment` |
+| Preview signing or reminder costs | Set `estimate_only: true` on the matching PDF, assignment, template or reminder tool; [cost preview rules](references/tools.md#cost-previews) |
 | Let the user review before sending | `assinafy_review_signature_request` → send only after the user confirms |
 | Place signature/initials/date/input fields on pages | `assinafy_place_fields`, or `assinafy_create_assignment` with `method: "collect"` and `entries` |
 | Use a saved template | `assinafy_list_templates` → `assinafy_list_fields` / `assinafy_validate_fields` → `assinafy_create_document_from_template` |
@@ -47,18 +48,27 @@ Set per signer in `assinafy_create_assignment`, `assinafy_create_document_from_t
 |---|---|---|
 | `Email` (default) | Signer has an email | Included |
 | `Whatsapp` | Signer has `whatsapp_phone_number` (E.164); WhatsApp notification; paid plan | 0.45 (WhatsApp notification) |
-| `DigitalCertificate` | ICP-Brasil A1 or A3 certificate; CPF or CNPJ registered on the contact in Assinafy; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
+| `DigitalCertificate` | ICP-Brasil A1 or A3 certificate; CPF/CNPJ saved in `government_id`; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
+| `IdDocumentFaceMatchBasic` | ID photos and liveness; valid CPF saved in `government_id`; ID Document + Face Match feature enabled | Use the cost preview |
 
-Each request also uses one document from the plan allowance, or 1 credit once it is
-exhausted. `notification_methods` accepts `Email` and/or `Whatsapp` (WhatsApp is paid); in
-`assinafy_create_document_from_template` each signer takes at most one channel.
-`assinafy_send_pdf_for_signature` always uses Email verification and Email notification;
-use `assinafy_create_assignment` for any other channel. A CPF signer needs their own
-e-CPF (or an e-CNPJ naming them as legal representative); a CNPJ signer needs that
-company's e-CNPJ. Never ask for, accept or pass a CPF or CNPJ: before a certificate
-request, confirm with `assinafy_get_signer` that `government_id` is set; if it is
-missing, ask the user to add it to the contact in the Assinafy app. When the plan lacks a
-feature, Assinafy answers `403` naming it; tell the user, do not retry.
+Each signature request uses one plan document, or 1 credit once exhausted. Use the
+API's cost preview for current costs, balances and blocking reasons; estimates do
+not reserve credits. A PDF preview uploads and retains its document; reuse that ID
+with `assinafy_create_assignment` to send. Other previews create no records or
+messages. `estimate_only` is not accepted by review or placement cards.
+
+Each signer takes exactly one compatible notification channel: Email verification
+uses Email, Whatsapp uses Whatsapp, and certificate/biometric verification accepts
+either. Omitted settings are inferred. The common PDF tool always uses Email;
+other methods use the assignment or template flow.
+
+Read the contact's `government_id` before certificate or biometric requests. If
+missing, save an authorized CPF/CNPJ through `assinafy_create_signer` or
+`assinafy_update_signer`, or let the user enter it in Assinafy. Biometrics requires
+a valid CPF; a certificate requires the matching person's e-CPF or company's
+e-CNPJ. Handle identity data only for the authorized contact operation. The human
+completes certificate signing, ID photos and liveness in Assinafy. Report a plan
+feature refusal instead of repeating the call.
 
 ## Document status
 
@@ -66,9 +76,13 @@ feature, Assinafy answers `403` naming it; tell the user, do not retry.
 `pending_signature` → `certificating` → `certificated`. Alternatives: `expired` (try
 `assinafy_set_assignment_expiration`; if Assinafy refuses, start over), `rejected_by_signer`, `rejected_by_user`, `failed`.
 
-- 100% signed can still be `certificating`. Download the signed PDF only at
+- `identity_verification_status: InReview` requires the account to review identity
+  in Assinafy. Once all signers finish, that document waits at
+  `pending_identity_review` until approval;
+  rejection cancels the document. The assistant reports the state and next step.
+- 100% signed can still be `certificating` or `pending_identity_review`. Download the signed PDF only at
   `certificated` with the `certificated` artifact listed.
-- Deletable states: `metadata_ready`, `pending_signature`, `expired`,
+- Deletable states (identity review is not deletable): `metadata_ready`, `pending_signature`, `expired`,
   `rejected_by_signer`, `rejected_by_user`, `failed`.
 - `collect` assignments need `metadata_ready`; `virtual` can start from `uploaded`.
 

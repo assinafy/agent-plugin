@@ -25,7 +25,7 @@ relevant section before building a non-trivial call.
 
 | User intent | Calls, in order |
 |---|---|
-| Send a new PDF to people by email | `assinafy_send_pdf_for_signature` |
+| Send a new PDF to up to 10 people by email | `assinafy_send_pdf_for_signature` |
 | Upload now, send later | `assinafy_upload_document` (optionally `assinafy_rename_document`) → later `assinafy_create_assignment` |
 | Signing order, copy receivers, WhatsApp, biometric or certificate signers | `assinafy_upload_document` (new PDF) → `assinafy_list_signers` / `assinafy_create_signer` → `assinafy_create_assignment` |
 | Preview signing or reminder costs | Set `estimate_only: true` on the matching PDF, assignment, template or reminder tool; [cost preview rules](references/tools.md#cost-previews) |
@@ -61,6 +61,11 @@ Each signer takes exactly one compatible notification channel: Email verificatio
 uses Email, Whatsapp uses Whatsapp, and certificate/biometric verification accepts
 either. Omitted settings are inferred. The common PDF tool always uses Email;
 other methods use the assignment or template flow.
+
+For a saved template, an inline `full_name` and `email` contact is Email-only.
+WhatsApp, certificate and biometric signing require an existing signer `id`; create
+or update the authorized contact first. Template signing steps are all-or-none and
+contiguous from 1, with a certificate signer alone in its step.
 
 Read the contact's `government_id` before certificate or biometric requests. If
 missing, save an authorized CPF/CNPJ through `assinafy_create_signer` or
@@ -102,8 +107,8 @@ feature refusal instead of repeating the call.
 5. Files: `file_base64` is the PDF's base64 text (max 25 MiB decoded). Where a shell is
    available, produce it with `base64 -i <file>` rather than reading the PDF as pages;
    large files may exceed what fits in one tool call, so ask the user to upload those
-   in Assinafy and continue from the document ID. Write downloaded base64 to disk
-   (decode with `base64 -d`) instead of printing it.
+   in Assinafy and continue from the document ID. Downloads keep base64 only in
+   `structuredContent`; write it to disk (decode with `base64 -d`) instead of printing it.
 6. You cannot sign, accept terms or enter verification codes for anyone. Signing links
    and codes in results are sensitive; never use or expose them.
 7. Template authoring, webhook configuration and account administration are done in

@@ -4,6 +4,16 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-10-16
+
+### Changed
+
+- Documented the one-step PDF flow's 10-signer limit and bounded processing time.
+- Clarified that template requests use inline contacts only for Email signing and
+  validate signing order before creating contacts.
+- Binary downloads now keep base64 only in structured tool results instead of
+  duplicating it in text.
+
 ## [1.2.0] - 2026-10-16
 
 ### Added
@@ -57,6 +67,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.2.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.1
 [1.2.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.0
 [1.1.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.1.0
 [1.0.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.0.0

@@ -175,7 +175,8 @@ You can start in one of three ways:
 - **A new PDF.** Attach it or point the assistant to the file. The assistant reads it and sends the
   bytes; the server never opens paths on your computer. The decoded limit is 25 MiB.
   - Want to send now to people by email? Say so; one call uploads, waits for processing
-    and sends (`assinafy_send_pdf_for_signature`).
+    and sends to at most 10 people (`assinafy_send_pdf_for_signature`). It has an
+    end-to-end deadline of `max_wait_secs` plus two minutes.
   - Want to prepare first? The assistant uploads (`assinafy_upload_document`) and
     can rename it before any request exists (`assinafy_rename_document`).
 - **A saved template.** The assistant lists templates with their roles and fields
@@ -199,6 +200,10 @@ creates them (`assinafy_create_signer`). For each signer you choose:
 - **Copy receivers** (optional): contacts who get the signed document without signing.
 
 Also optional: an invitation message and an expiry date.
+
+For a saved template, an inline name and email can use only Email signing. WhatsApp,
+certificate and biometric signing require an existing contact ID. If one template
+signer has a step, every signer must have one; steps are contiguous from 1.
 
 Two signing modes are available:
 
@@ -285,7 +290,8 @@ whether to delete the document and send a new request.
 - **Download**: The assistant downloads the certified PDF (`assinafy_download_document`,
   `artifact: "certificated"`) and saves it with its file tools. Other artifacts are
   `original`, `certificate-page`, `bundle` and `pades`. Page previews use
-  `assinafy_download_document_page`.
+  `assinafy_download_document_page`. Binary base64 stays in the structured tool
+  result rather than being copied into text.
 - **Verify**: give the assistant the signature hash printed on a signed document.
   `assinafy_verify_document` checks it publicly and returns whether it is valid, the
   status, signer count and completion date. It works without signing in.

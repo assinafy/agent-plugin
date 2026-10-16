@@ -3,11 +3,12 @@
 Every tool exposed by `https://mcp.assinafy.com.br/mcp`, with the Assinafy
 REST operation it calls, its arguments, a request and a response. Arguments are sent
 as the MCP `tools/call` `arguments` object. Successful JSON results arrive both as
-`structuredContent` and as the same JSON in a text block; responses below show that
-JSON. IDs, names, emails and dates are fictional.
+`structuredContent` and as the same JSON in a text block, except binary downloads:
+their base64 is only in `structuredContent`, with a short text summary. Responses
+below show the JSON. IDs, names, emails and dates are fictional.
 
 For every complete input and response schema, including optional fields and cost
-previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.1;
+previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.2;
 the sections below provide the conversational flow and representative payloads.
 
 `account_id` is optional everywhere it appears. The workspace comes from the OAuth
@@ -438,7 +439,8 @@ Optional: `message`, `expires_at`, `max_wait_secs`, `poll_secs`, `account_id`, `
 Uploads, waits for processing, creates or reuses each signer by exact email, and sends
 a `virtual` request with Email verification and Email notification. `signers` items
 are `{full_name, email}`; duplicate emails are rejected. `max_wait_secs` is 1–600
-(default 30); `poll_secs` defaults to 2.
+(default 30); `poll_secs` defaults to 2. One call accepts at most 10 signers and
+has an end-to-end deadline of `max_wait_secs` plus two minutes.
 
 Request:
 
@@ -563,6 +565,11 @@ One `signers` entry per template role:
 | `verification_method` | no | `Email`, `Whatsapp`, `DigitalCertificate`, `IdDocumentFaceMatchBasic` |
 | `notification_methods` | no | At most one: `Email` or `Whatsapp` |
 | `step` | no | Contiguous from 1; all or none |
+
+Inline `full_name` and `email` contacts are Email-only. Whatsapp notification or
+verification, `DigitalCertificate` and `IdDocumentFaceMatchBasic` require an
+existing signer `id` whose authorized contact data was prepared first. If one
+entry sets `step`, all entries must; a certificate signer must be alone in its step.
 
 `editor_fields` is `[{field_id, value}]` with the placement's `field_id` and a string
 value (validate first with `assinafy_validate_fields`). `tags` are tag names merged with
@@ -940,6 +947,7 @@ Optional: `artifact`
 `artifact` is `original` (default), `certificated`, `certificate-page`, `pades` or
 `bundle`. Download `certificated` only when the status is `certificated` and the
 document's `artifacts` lists it. Binary limit 64 MiB.
+The base64 is returned only in `structuredContent`; text content is a short summary.
 
 Request:
 

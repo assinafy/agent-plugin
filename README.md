@@ -177,7 +177,8 @@ Há três pontos de partida:
   envia os bytes; o servidor nunca abre caminhos do seu computador. Limite de 25 MiB
   depois de decodificado.
   - Quer enviar já, por e-mail? Diga isso; uma chamada envia o PDF, aguarda o
-    processamento e dispara os convites (`assinafy_send_pdf_for_signature`).
+    processamento e dispara os convites para no máximo 10 pessoas
+    (`assinafy_send_pdf_for_signature`). O prazo total é `max_wait_secs` mais dois minutos.
   - Quer preparar antes? O assistente envia o arquivo (`assinafy_upload_document`) e
     pode renomeá-lo enquanto não houver solicitação (`assinafy_rename_document`).
 - **Um modelo salvo.** O assistente lista os modelos com papéis e campos
@@ -204,6 +205,10 @@ cadastra (`assinafy_create_signer`). Para cada signatário você define:
   assinar.
 
 Também opcionais: mensagem do convite e data de expiração.
+
+Em um modelo salvo, nome e e-mail informados na chamada servem apenas para assinatura
+por Email. WhatsApp, certificado e biometria exigem o ID de um contato existente.
+Se um signatário do modelo usar etapa, todos usam; as etapas são contíguas a partir de 1.
 
 Há dois modos de assinatura:
 
@@ -293,7 +298,8 @@ signatário recusar (`rejected_by_signer`), o assistente mostra o motivo e você
 - **Baixar**: o assistente baixa o PDF certificado (`assinafy_download_document`,
   `artifact: "certificated"`) e o salva com as ferramentas de arquivo. Outros artefatos:
   `original`, `certificate-page`, `bundle` e `pades`. Prévias de página usam
-  `assinafy_download_document_page`.
+  `assinafy_download_document_page`. O base64 binário fica no resultado estruturado,
+  sem ser copiado para o texto.
 - **Verificar**: informe ao assistente o hash de assinatura impresso no documento assinado.
   `assinafy_verify_document` consulta a verificação pública e retorna se é válido, o
   status, o número de signatários e a data de conclusão. Funciona sem login.

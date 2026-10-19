@@ -8,7 +8,7 @@ their base64 is only in `structuredContent`, with a short text summary. Response
 below show the JSON. IDs, names, emails and dates are fictional.
 
 For every complete input and response schema, including optional fields and cost
-previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.2;
+previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.3;
 the sections below provide the conversational flow and representative payloads.
 
 `account_id` is optional everywhere it appears. The workspace comes from the OAuth
@@ -181,7 +181,8 @@ Used by `assinafy_create_assignment`, `assinafy_review_signature_request` and `a
 - `Whatsapp` verification needs the WhatsApp channel and a paid plan; the WhatsApp
   notification costs 0.45 credits per signer.
 - `DigitalCertificate` signs with the signer's ICP-Brasil A1 or A3 certificate. It needs
-  the Digital Certificate feature, a CPF or CNPJ already registered on the signer's
+  `method: "virtual"`, the Digital Certificate feature, a CPF or CNPJ already
+  registered on the signer's
   contact (`government_id` in `assinafy_get_signer`, saved through an authorized
   create/update contact call or in Assinafy), and the signer alone in its step, so give every signer a
   `step` when others sign too. 0.5 credits per signer plus its notification channel.
@@ -506,6 +507,10 @@ Optional: `entries`, `message`, `expires_at`, `copy_receivers`, `estimate_only`
 that receive the signed copy without signing. Inspect the document first; if it already
 has an `assignment`, follow up instead.
 
+`DigitalCertificate` signers require `method: "virtual"`. The tool rejects `collect`
+before both cost estimation and assignment creation with the stable code
+`digital_certificate_requires_virtual`, so no unusable invitation is sent or charged.
+
 Request (signing order, WhatsApp, certificate and a copy receiver):
 
 ```json
@@ -570,6 +575,12 @@ Inline `full_name` and `email` contacts are Email-only. Whatsapp notification or
 verification, `DigitalCertificate` and `IdDocumentFaceMatchBasic` require an
 existing signer `id` whose authorized contact data was prepared first. If one
 entry sets `step`, all entries must; a certificate signer must be alone in its step.
+
+A template containing any placed field uses a `collect` assignment and therefore
+cannot use a `DigitalCertificate` signer. The tool inspects certificate templates
+before cost estimation or creation and returns
+`digital_certificate_requires_virtual` without creating contacts or documents,
+sending invitations or charging.
 
 `editor_fields` is `[{field_id, value}]` with the placement's `field_id` and a string
 value (validate first with `assinafy_validate_fields`). `tags` are tag names merged with

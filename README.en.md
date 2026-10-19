@@ -205,6 +205,10 @@ For a saved template, an inline name and email can use only Email signing. Whats
 certificate and biometric signing require an existing contact ID. If one template
 signer has a step, every signer must have one; steps are contiguous from 1.
 
+Digital certificate signers require a virtual assignment. Collect assignments and
+templates with placed fields are rejected before cost estimation or sending with
+`digital_certificate_requires_virtual`.
+
 Two signing modes are available:
 
 - **Virtual** (default): the signer signs the whole document; Assinafy adds the
@@ -332,7 +336,7 @@ Names, emails and dates are examples.
 |---|---|---|---|
 | Email (default) | Code sent by email | An email address | Included |
 | WhatsApp | Code sent by WhatsApp | WhatsApp number in E.164 (`+5511…`), WhatsApp notification, paid plan | 0.45 |
-| Digital certificate | ICP-Brasil A1 or A3 certificate | Digital Certificate feature; CPF or CNPJ saved in `government_id`; alone in their step | 0.5 plus the notification |
+| Digital certificate | ICP-Brasil A1 or A3 certificate | Virtual assignment; Digital Certificate feature; CPF or CNPJ saved in `government_id`; alone in their step | 0.5 plus the notification |
 | Biometrics | ID photos and liveness | ID Document + Face Match feature; valid CPF saved in `government_id` | Use the cost preview |
 
 - Each signature request uses one document from your plan's allowance, or 1 credit once

@@ -48,7 +48,7 @@ Set per signer in `assinafy_create_assignment`, `assinafy_create_document_from_t
 |---|---|---|
 | `Email` (default) | Signer has an email | Included |
 | `Whatsapp` | Signer has `whatsapp_phone_number` (E.164); WhatsApp notification; paid plan | 0.45 (WhatsApp notification) |
-| `DigitalCertificate` | ICP-Brasil A1 or A3 certificate; CPF/CNPJ saved in `government_id`; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
+| `DigitalCertificate` | `method: "virtual"`; ICP-Brasil A1 or A3 certificate; CPF/CNPJ saved in `government_id`; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
 | `IdDocumentFaceMatchBasic` | ID photos and liveness; valid CPF saved in `government_id`; ID Document + Face Match feature enabled | Use the cost preview |
 
 Each signature request uses one plan document, or 1 credit once exhausted. Use the
@@ -66,6 +66,13 @@ For a saved template, an inline `full_name` and `email` contact is Email-only.
 WhatsApp, certificate and biometric signing require an existing signer `id`; create
 or update the authorized contact first. Template signing steps are all-or-none and
 contiguous from 1, with a certificate signer alone in its step.
+
+`DigitalCertificate` requires a virtual assignment. Refuse
+`assinafy_create_assignment` with any other `method`. Before
+`assinafy_create_document_from_template`, inspect the selected template; any placed
+field makes it `collect`, so refuse a certificate signer. Both tools reject their
+cost-preview and send paths before writing or charging with the stable code
+`digital_certificate_requires_virtual`.
 
 Read the contact's `government_id` before certificate or biometric requests. If
 missing, save an authorized CPF/CNPJ through `assinafy_create_signer` or

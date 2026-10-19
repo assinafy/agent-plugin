@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] - 2026-10-19
+
+### Changed
+
+- Digital-certificate signers now require virtual assignments. Collect assignments
+  and templates with placed fields are rejected before cost estimation or sending
+  with `digital_certificate_requires_virtual`.
+
 ## [1.2.1] - 2026-10-16
 
 ### Changed
@@ -67,6 +75,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.2.2]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.2
 [1.2.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.1
 [1.2.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.0
 [1.1.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.1.0

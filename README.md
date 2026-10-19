@@ -210,6 +210,10 @@ Em um modelo salvo, nome e e-mail informados na chamada servem apenas para assin
 por Email. WhatsApp, certificado e biometria exigem o ID de um contato existente.
 Se um signatário do modelo usar etapa, todos usam; as etapas são contíguas a partir de 1.
 
+Signatários com certificado digital exigem assignment virtual. Assignments `collect`
+e templates com campos posicionados são recusados antes da estimativa ou do envio com
+`digital_certificate_requires_virtual`.
+
 Há dois modos de assinatura:
 
 - **Virtual** (padrão): o signatário assina o documento inteiro; a Assinafy adiciona a
@@ -340,7 +344,7 @@ Nomes, e-mails e datas são exemplos.
 |---|---|---|---|
 | E-mail (padrão) | Código enviado por e-mail | Um e-mail | Incluído |
 | WhatsApp | Código enviado por WhatsApp | Número de WhatsApp em E.164 (`+5511…`), notificação por WhatsApp, plano pago | 0,45 |
-| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Recurso Certificado Digital; CPF ou CNPJ salvo em `government_id`; sozinho na sua etapa | 0,5 mais a notificação |
+| Certificado digital | Certificado ICP-Brasil A1 ou A3 | Assignment virtual; recurso Certificado Digital; CPF ou CNPJ salvo em `government_id`; sozinho na sua etapa | 0,5 mais a notificação |
 | Biometria | Fotos de identificação e prova de vida | Recurso ID Document + Face Match; CPF válido salvo em `government_id` | Consulte a estimativa |
 
 - Cada solicitação de assinatura usa um documento da franquia do plano, ou 1 crédito

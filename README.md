@@ -89,10 +89,13 @@ plugins; nela, adicione o servidor pela URL como em [Sem o plugin](#sem-o-plugin
 
 ### ChatGPT
 
-Adicione um conector MCP remoto com a URL `https://mcp.assinafy.com.br/mcp`, escolha
-OAuth, selecione CIMD se for perguntado o tipo de registro e deixe as credenciais de
-cliente vazias. Depois conecte e entre na Assinafy. Status, revisão e posicionamento de
-campos aparecem como cartões interativos.
+Instale a [Assinafy pelo diretório de plugins do
+ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6acbe48b99f881919f32df8e549c1efa),
+conecte e entre na Assinafy. Para adicionar só o servidor, adicione um conector MCP
+remoto com a URL `https://mcp.assinafy.com.br/mcp`, escolha OAuth, selecione CIMD se for
+perguntado o tipo de registro e deixe as credenciais de cliente vazias. Depois conecte e
+entre na Assinafy. Status, revisão e posicionamento de campos aparecem como cartões
+interativos.
 
 ### VS Code com GitHub Copilot
 
@@ -262,6 +265,9 @@ assinatura e códigos nunca aparecem na conversa.
 - "Todos já assinaram?" O assistente encontra o documento e informa quem assinou e quem
   falta (`assinafy_get_document`, ou o cartão de status de
   `assinafy_show_document`, com **Lembrar** e **Atualizar**).
+- "Me avise quando assinarem." No ChatGPT Work, o ChatGPT acompanha o documento e
+  avisa quando o status muda ou a cópia assinada fica pronta. Os outros clientes
+  consultam o status quando você pede.
 - "O convite chegou para o Bruno?" O assistente lê o histórico de entrega por e-mail nos
   dados do signatário no documento (`assinafy_get_document`) e os detalhes de entrega
   por WhatsApp (`assinafy_list_whatsapp_notifications`).

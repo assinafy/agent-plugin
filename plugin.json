@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "assinafy",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, preview signing costs, request signatures by Email, WhatsApp, biometric ID verification or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
   "author": {
     "name": "Assinafy",
@@ -102,7 +102,7 @@
         "commerce_description": "Assinafy does not sell products or process payments through the plugin. Signature requests use the connected workspace's plan allowance and credits."
       },
       "publication": {
-        "release_notes": "Version 1.2.2. Aligns guidance with MCP server 3.3.3: DigitalCertificate signers require virtual assignments, while collect assignments and templates with placed fields are rejected before cost estimation or sending with digital_certificate_requires_virtual.",
+        "release_notes": "Version 1.2.3. In ChatGPT Work, the assistant can watch a document and notify you when its status changes or the signed copy is ready, instead of checking again on request.",
         "translations": {
           "pt-BR": {
             "subtitle": "Assinatura eletrônica com IA",

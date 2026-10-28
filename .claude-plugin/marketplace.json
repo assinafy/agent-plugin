@@ -11,7 +11,7 @@
       "source": "./",
       "description": "Send, preview costs, track, remind, download and verify Assinafy e-signatures (Email, WhatsApp, biometrics, ICP-Brasil A1/A3).",
       "category": "productivity",
-      "version": "1.2.2"
+      "version": "1.2.3"
     }
   ]
 }

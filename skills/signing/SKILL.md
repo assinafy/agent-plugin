@@ -33,6 +33,7 @@ relevant section before building a non-trivial call.
 | Place signature/initials/date/input fields on pages | `assinafy_place_fields`, or `assinafy_create_assignment` with `method: "collect"` and `entries` |
 | Use a saved template | `assinafy_list_templates` → `assinafy_list_fields` / `assinafy_validate_fields` → `assinafy_create_document_from_template` |
 | "Has everyone signed?" | `assinafy_list_documents` → `assinafy_get_document`, or `assinafy_show_document` |
+| "Tell me when it's signed" | ChatGPT Work watches the document through MCP Events on its own; elsewhere, check when asked and never poll |
 | Remind a signer | `assinafy_get_document` (signer not `completed`, already `notified`, in the active `step`) → `assinafy_resend_notification` |
 | Extend the deadline | `assinafy_set_assignment_expiration` |
 | Signed copy | `assinafy_get_document` (status `certificated`, artifact present) → `assinafy_download_document` with `artifact: "certificated"` |

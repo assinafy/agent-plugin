@@ -1,7 +1,7 @@
 {
   "name": "assinafy",
   "displayName": "Assinafy",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, preview signing costs, request signatures by Email, WhatsApp, biometric ID verification or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
   "author": {
     "name": "Assinafy",

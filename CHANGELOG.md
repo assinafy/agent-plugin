@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.3] - 2026-10-28
+
+### Added
+
+- Install from the ChatGPT plugin directory.
+- In ChatGPT Work, ask the assistant to watch a document and get notified when its
+  status changes or the signed copy is ready.
+
 ## [1.2.2] - 2026-10-19
 
 ### Changed
@@ -75,6 +83,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.2.3]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.3
 [1.2.2]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.2
 [1.2.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.1
 [1.2.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.0

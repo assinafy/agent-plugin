@@ -88,10 +88,13 @@ plugins; there, add the server by URL as described in [Without the plugin](#with
 
 ### ChatGPT
 
-Add a remote MCP connector with the URL `https://mcp.assinafy.com.br/mcp`, choose OAuth,
-select CIMD if a registration choice is offered, and leave client credentials empty.
-Then connect and sign in to Assinafy. Status, review and field-placement results appear
-as interactive cards.
+Install [Assinafy from the ChatGPT plugin
+directory](https://chatgpt.com/plugins/plugin_asdk_app_6acbe48b99f881919f32df8e549c1efa),
+then connect and sign in to Assinafy. To add only the server, add a remote MCP connector
+with the URL `https://mcp.assinafy.com.br/mcp`, choose OAuth, select CIMD if a
+registration choice is offered, and leave client credentials empty. Then connect and
+sign in to Assinafy. Status, review and field-placement results appear as interactive
+cards.
 
 ### VS Code with GitHub Copilot
 
@@ -255,6 +258,9 @@ never shown in the chat.
 - "Has everyone signed?" the assistant finds the document and reports who signed and who is
   pending (`assinafy_get_document`, or the `assinafy_show_document` status
   card with **Remind** and **Refresh**).
+- "Tell me when it's signed." In ChatGPT Work, ChatGPT watches the document and
+  notifies you when its status changes or the signed copy is ready. Other clients
+  check the status when you ask.
 - "Did the invitation reach Bruno?" the assistant reads the email delivery history in the
   document's signer records (`assinafy_get_document`) and WhatsApp delivery details
   (`assinafy_list_whatsapp_notifications`).

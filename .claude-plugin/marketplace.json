@@ -9,9 +9,9 @@
     {
       "name": "assinafy",
       "source": "./",
-      "description": "Send, preview costs, track, remind, download and verify Assinafy e-signatures (Email, WhatsApp, biometrics, ICP-Brasil A1/A3).",
+      "description": "Send, preview costs, track, remind, download and verify Assinafy e-signatures (Email, WhatsApp, biometrics, ICP-Brasil A1/A3). Manage contract terms, renewals and lifecycle reminders.",
       "category": "productivity",
-      "version": "1.2.3"
+      "version": "1.3.0"
     }
   ]
 }

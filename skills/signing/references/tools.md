@@ -8,7 +8,7 @@ their base64 is only in `structuredContent`, with a short text summary. Response
 below show the JSON. IDs, names, emails and dates are fictional.
 
 For every complete input and response schema, including optional fields and cost
-previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.3.3;
+previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.4.0;
 the sections below provide the conversational flow and representative payloads.
 
 `account_id` is optional everywhere it appears. The workspace comes from the OAuth
@@ -16,7 +16,7 @@ grant; a value that differs from the grant is rejected.
 
 ## Conventions
 
-- **One tool per operation**; each accepts only the arguments listed in its section.
+- **Signing tools keep one operation each**; the two CLM tools group fixed read and write actions separately. Each accepts only its documented arguments.
 - **Timestamps** are RFC 3339 (`2026-12-31T23:59:59Z`).
 - **Lists** return `{"data": [...], "meta": {...}}`; `meta` comes from Assinafy's
   pagination headers and is omitted when absent. Pages start at 1, `per_page` max 100.
@@ -1046,3 +1046,91 @@ Request:
 ```
 
 Response text: `Document deleted successfully`
+
+## Contract management
+
+Use an existing document, or upload it once through the signing flow. The read tool
+is available without a tracking plan; writes need `documents:write` and a plan
+with contract tracking. Both stay in the OAuth workspace. Contract terms are
+independent of the signature deadline.
+
+Read current terms before writing. Reuse their `updated_at`; renew also requires
+the current `term`, even when an explicit new end date is provided. A `409` needs a
+fresh read and review of the concurrent change. A timeout may follow a successful
+write: inspect terms and document activities before continuing. Writes are not
+automatically retried.
+
+`set` changes only supplied terms; `external_references` replaces its entire list.
+Null follows the API's clearing rules. For an existing record include
+`terms.updated_at`; omit it for new terms or a first amendment link. To link a
+signed instrument, set `parent_document_id`, `relation_type` (`amendment`,
+`renewal`, `termination`) and the delta on its separate document. Assinafy applies
+it after certification in signing order. On a pending amendment, null removes a
+delta field; `parent_document_id: null` unlinks it. Use the link's own timestamp.
+Inspect `apply_error` if it remains pending after certification.
+
+Assinafy's hourly job uses Brasília dates for notice-period alerts, 45/30-day
+expiry warnings, expiry and automatic renewal. Configure `notice_period_days`,
+`auto_renew` and `renewal_term_months` only as authorized. Emails follow the
+owner's or active creator's preferences; a tracking-plan lapse pauses this job.
+`owner_id` is a known active workspace member, never a signer/contact ID.
+
+Subscribe to `contract.activity` with a document ID when the host supports Events.
+It delivers new upstream CLM activities, without replaying history, while the
+client refreshes OAuth and the subscription. Root and amendment documents have
+their own activities. The server persists pending delivery but no OAuth tokens;
+restart needs a fresh client subscription refresh. Read current terms on an alert
+and deduplicate deliveries. An event does not authorize renewal, termination or
+an extra email. Use Assinafy's owner emails for reminders independent of the MCP
+client.
+
+### `assinafy_browse_contracts`
+
+API: `GET /v1/accounts/{accountId}/contracts`, `GET /v1/accounts/{accountId}/documents/{documentId}/contract`, `GET /v1/accounts/{accountId}/documents/{documentId}/contract/related`
+Required: `action`
+Optional: `account_id`, `counterparty`, `document_id`, `end_date_from`, `end_date_to`, `ending_within_days`, `expand`, `external_id`, `external_system`, `page`, `per_page`, `search`, `sort`, `status`
+
+`list` accepts filters and pagination. `status` is comma-separated;
+`ending_within_days: 0` is today and 30 includes both boundary days. Use
+`status: active` to restrict to contracts still in force and `expand: document`
+for document names. `get` and `related` require `document_id` and reject list
+filters. `get` returns that record or amendment; `related` returns its root and
+family. The app can filter, page, inspect and send a proposed change to chat for
+review. Opening the browser performs no write.
+
+Request:
+
+```json
+{"action":"list","status":"active","ending_within_days":30,"sort":"end_date"}
+```
+
+Response:
+
+```json
+{"view":"contracts","request":{"action":"list","status":"active","ending_within_days":30,"sort":"end_date"},"result":{"data":[{"resource":"document_contract","document_id":"1f0a2b3c4d5e6f708192a3b4c5d6","status":"active","counterparty_name":"Example Company","end_date":"2027-10-31","term":1,"updated_at":"2026-10-28T12:00:00Z"}]}}
+```
+
+### `assinafy_update_contract`
+
+API: `PUT /v1/accounts/{accountId}/documents/{documentId}/contract`, `POST /v1/accounts/{accountId}/documents/{documentId}/contract/renew`, `POST /v1/accounts/{accountId}/documents/{documentId}/contract/terminate`
+Required: `action`
+Optional: `account_id`, `document_id`, `end_date`, `reason`, `term`, `terms`, `updated_at`, `value`
+
+Each action additionally requires `document_id`. `set` requires a nonempty `terms`
+object, `renew` requires `term` and `updated_at`, and `terminate` requires
+`updated_at`. The schema rejects fields belonging to another action. `renew`
+accepts an optional new `end_date` and `value`; `terminate` an optional `reason`.
+These writes can trigger Assinafy lifecycle emails and webhooks. Termination
+closes contract tracking; it does not cancel the signature assignment.
+
+Request:
+
+```json
+{"action":"renew","document_id":"1f0a2b3c4d5e6f708192a3b4c5d6","term":1,"updated_at":"2026-10-28T12:00:00Z"}
+```
+
+Response:
+
+```json
+{"resource":"document_contract","document_id":"1f0a2b3c4d5e6f708192a3b4c5d6","status":"active","end_date":"2028-10-31","term":2,"updated_at":"2026-10-28T12:01:00Z"}
+```

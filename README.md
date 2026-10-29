@@ -20,6 +20,7 @@ por OAuth 2.1. Não é preciso chave de API, segredo de cliente nem servidor loc
 - [O que você pode pedir](#o-que-você-pode-pedir)
 - [Métodos de assinatura e custos](#métodos-de-assinatura-e-custos)
 - [Status do documento](#status-do-documento)
+- [Gestão de contratos](#gestão-de-contratos)
 - [Ferramentas](#ferramentas)
 - [Sem o plugin](#sem-o-plugin)
 - [Solução de problemas](#solução-de-problemas)
@@ -391,7 +392,7 @@ Veja [prévias e payloads](skills/signing/references/tools.md#cost-previews).
 
 ## Ferramentas
 
-27 ferramentas, uma por operação. As requisições e respostas completas de cada
+29 ferramentas. As operações de assinatura continuam separadas; duas ferramentas cobrem contratos. As requisições e respostas completas de cada
 ferramenta estão em
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
 Os schemas e exemplos completos estão em
@@ -426,6 +427,8 @@ Os schemas e exemplos completos estão em
 | `assinafy_download_document_page` | Leitura |
 | `assinafy_verify_document` | Leitura; pública |
 | `assinafy_delete_document` | Exclusão |
+| `assinafy_browse_contracts` | Leitura; navegador de contratos |
+| `assinafy_update_contract` | Altera termos, renova ou encerra o acompanhamento |
 
 Criação de modelos, webhooks (incluindo entregas assinadas e múltiplos endpoints),
 usuários, chaves de API e cobrança são gerenciados na Assinafy ou pela
@@ -486,3 +489,27 @@ Para entrar de novo ou trocar de workspace em cada cliente:
 ## Licença
 
 [MIT](LICENSE)
+
+## Gestão de contratos
+
+Peça “Quais contratos ativos vencem nos próximos 30 dias?” ou “Revise a renovação
+deste contrato”. `assinafy_browse_contracts` consulta contratos (`list`), termos ou
+aditivos (`get`) e a família completa (`related`). Clientes compatíveis exibem o
+navegador de contratos; os demais recebem os mesmos dados em texto.
+
+`assinafy_update_contract` registra termos (`set`), inicia a próxima vigência
+(`renew`) ou encerra o acompanhamento (`terminate`), conforme a autorização do
+usuário. Leia antes e reutilize `updated_at`; a renovação também exige o `term`
+atual. Em conflito, consulte novamente e revise a alteração. Não repita escritas
+às cegas. Para mudanças que exigem assinatura, vincule um documento separado por
+`parent_document_id` e `relation_type` e use o fluxo de assinatura existente.
+
+A Assinafy executa os avisos de renovação, alertas de vencimento, e-mails ao
+responsável e renovação automática no ciclo horário, pelo calendário de Brasília.
+Configure `notice_period_days`, `auto_renew` e `renewal_term_months` conforme
+autorizado. Esses prazos são diferentes do prazo para assinar o documento.
+Clientes compatíveis podem acompanhar `contract.activity`, mantendo a conexão
+OAuth e a inscrição renovadas. Um evento não autoriza renovar, encerrar ou enviar
+outra mensagem. Alterações exigem um plano com gestão de contratos; consultas
+continuam disponíveis sem ele. Veja [o fluxo de contratos](skills/signing/references/tools.md#contract-management)
+e [MCP Events](skills/signing/references/tools.md#contract-management).

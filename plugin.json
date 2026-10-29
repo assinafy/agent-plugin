@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "assinafy",
-  "version": "1.2.3",
-  "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, preview signing costs, request signatures by Email, WhatsApp, biometric ID verification or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
+  "version": "1.3.0",
+  "description": "Send documents for legally valid e-signature in Brazil: upload PDFs or use saved templates, preview signing costs, request signatures by Email, WhatsApp, biometric ID verification or ICP-Brasil digital certificate (A1/A3), track signers, send reminders, download certified PDFs and verify signatures. Manage contract terms, amendments, renewals and lifecycle reminders. Connects to the hosted Assinafy MCP server with OAuth 2.1.",
   "author": {
     "name": "Assinafy",
     "url": "https://www.assinafy.com.br"
@@ -25,7 +25,7 @@
       "interface": {
         "displayName": "Assinafy",
         "shortDescription": "AI-powered e-signatures",
-        "longDescription": "Send PDFs or saved templates for legally valid electronic signature in Brazil. Preview costs, choose Email, WhatsApp, biometric ID and liveness or ICP-Brasil A1/A3 verification, set signing order, track progress, send reminders, download certified PDFs and verify signature hashes. Assinafy accesses only the workspace and permissions you approve.",
+        "longDescription": "Send PDFs or saved templates for legally valid electronic signature in Brazil. Preview costs, choose Email, WhatsApp, biometric ID and liveness or ICP-Brasil A1/A3 verification, set signing order, track progress, send reminders, download certified PDFs and verify signature hashes. Assinafy accesses only the workspace and permissions you approve. Manage contract terms, amendments and renewals, and follow lifecycle alerts.",
         "developerName": "Assinafy",
         "category": "Productivity",
         "capabilities": [
@@ -34,7 +34,9 @@
           "Track signers",
           "Send reminders",
           "Download signed PDFs",
-          "Verify signatures"
+          "Verify signatures",
+          "Manage contracts and renewals",
+          "Follow contract lifecycle alerts"
         ],
         "websiteURL": "https://www.assinafy.com.br",
         "supportURL": "https://www.assinafy.com.br/contato",
@@ -43,7 +45,7 @@
         "defaultPrompt": [
           "Which documents are still waiting for signatures?",
           "Send this PDF to a client for signature by email.",
-          "Download the signed copy of my latest contract."
+          "Which active contracts expire in the next 30 days?"
         ],
         "composerIcon": "./assets/icon.png",
         "logo": "./assets/icon.png"
@@ -64,10 +66,10 @@
               "expected_behavior": "Finds the document, then calls assinafy_create_assignment with estimate_only true, method virtual and a Whatsapp signer. Reports balances and cost without creating contacts or sending invitations."
             },
             {
-              "description": "Check signing progress",
-              "prompt": "Has everyone signed the service agreement?",
-              "tools_triggered": "assinafy_list_documents, assinafy_show_document",
-              "expected_behavior": "Finds the document and reports who signed, who is pending and the expiry."
+              "description": "Review upcoming contract renewals",
+              "prompt": "Which active contracts expire in the next 30 days? Do not change anything.",
+              "tools_triggered": "assinafy_browse_contracts",
+              "expected_behavior": "Lists active contracts ending within 30 days, shows the contract browser and reads selected terms without renewing, terminating or sending messages."
             },
             {
               "description": "Remind a pending signer",
@@ -102,11 +104,11 @@
         "commerce_description": "Assinafy does not sell products or process payments through the plugin. Signature requests use the connected workspace's plan allowance and credits."
       },
       "publication": {
-        "release_notes": "Version 1.2.3. In ChatGPT Work, the assistant can watch a document and notify you when its status changes or the signed copy is ready, instead of checking again on request.",
+        "release_notes": "Version 1.3.0. Browse contract terms and amendments, review upcoming renewals, update authorized terms and follow contract lifecycle alerts. Uses MCP server v3.4.0 with 29 tools.",
         "translations": {
           "pt-BR": {
             "subtitle": "Assinatura eletrônica com IA",
-            "description": "Envie PDFs ou modelos salvos para assinatura eletrônica com validade jurídica no Brasil. Consulte custos, escolha verificação por e-mail, WhatsApp, documento e biometria ou certificado ICP-Brasil A1/A3, defina a ordem, acompanhe o andamento, envie lembretes, baixe PDFs certificados e verifique hashes. A Assinafy acessa somente o workspace e as permissões que você aprovar."
+            "description": "Envie PDFs ou modelos salvos para assinatura eletrônica com validade jurídica no Brasil. Consulte custos, escolha verificação por e-mail, WhatsApp, documento e biometria ou certificado ICP-Brasil A1/A3, defina a ordem, acompanhe o andamento, envie lembretes, baixe PDFs certificados e verifique hashes. A Assinafy acessa somente o workspace e as permissões que você aprovar. Gerencie termos, aditivos e renovações de contratos e acompanhe avisos do ciclo de vida."
           }
         }
       }

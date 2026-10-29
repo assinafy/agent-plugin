@@ -20,6 +20,7 @@ need an API key, client secret or local server.
 - [What you can ask](#what-you-can-ask)
 - [Signature methods and costs](#signature-methods-and-costs)
 - [Document statuses](#document-statuses)
+- [Contract management](#contract-management)
 - [Tools](#tools)
 - [Without the plugin](#without-the-plugin)
 - [Troubleshooting](#troubleshooting)
@@ -383,7 +384,7 @@ Other previews create no records or messages. See
 
 ## Tools
 
-27 tools, one per operation. Full request and response payloads for every tool are in
+29 tools. Signing operations stay separate; two tools cover contract reads and writes. Full request and response payloads for every tool are in
 [`skills/signing/references/tools.md`](skills/signing/references/tools.md).
 Complete schemas and examples are in
 [`tool-payloads.json`](skills/signing/references/tool-payloads.json).
@@ -417,6 +418,8 @@ Complete schemas and examples are in
 | `assinafy_download_document_page` | Read |
 | `assinafy_verify_document` | Read; public |
 | `assinafy_delete_document` | Delete |
+| `assinafy_browse_contracts` | Read; contract browser |
+| `assinafy_update_contract` | Changes terms, renews or terminates tracking |
 
 Template authoring, webhooks (including signed deliveries and multiple endpoints),
 users, API keys and billing are managed in Assinafy or through the
@@ -476,3 +479,28 @@ To sign in again or switch workspace in each client:
 ## License
 
 [MIT](LICENSE)
+
+## Contract management
+
+
+Use `assinafy_browse_contracts` with `action: list` to find contracts by name,
+counterparty, status or end date; add `status: active` and `ending_within_days: 30`
+for upcoming active contracts. `get` reads the selected document's terms or
+amendment, while `related` reads its whole family from the root. Compatible hosts
+render the MCP app with navigation and review actions; all clients get JSON/text.
+
+Use `assinafy_update_contract` only for authorized changes: `set` patches `terms`,
+`renew` starts the next term, and `terminate` ends tracking. Read first and reuse
+`updated_at`; renew also requires the current `term`. A conflict needs another
+read and review, not a blind retry. For changes that need a signed instrument,
+link a separate document with `parent_document_id` and `relation_type`, then use
+the existing signing tools. Assinafy applies it after certification.
+
+Set `notice_period_days`, `auto_renew` and `renewal_term_months` to configure
+Assinafy's lifecycle. It sends owner reminders and checks dates hourly in Brasília
+time. This is independent of signing deadlines and signer invitation reminders.
+An Events-capable client can subscribe to `contract.activity` for a document and
+keep its OAuth connection and subscription refreshed. Read current terms on each
+alert before suggesting action; an event is not authorization to renew, terminate
+or send another message. See [the full CLM workflow](skills/signing/references/tools.md#contract-management)
+and [subscription limitations](skills/signing/references/tools.md#contract-management).

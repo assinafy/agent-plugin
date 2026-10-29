@@ -1,12 +1,12 @@
 ---
 name: signing
-description: Send, track, remind, download and verify Assinafy e-signatures through the Assinafy MCP tools. Use when the user wants a PDF or saved template signed, asks who has signed, wants a reminder sent, needs a signed (certificated) copy, wants a signature hash verified, or manages Assinafy signer contacts, including cost previews, Email, WhatsApp, biometric ID and liveness, and ICP-Brasil digital certificate (A1/A3) signing. Also for Portuguese requests such as assinar, assinatura, enviar para assinatura, lembrete, documento assinado, certificado digital or biometria.
+description: Send, track, remind, download and verify Assinafy e-signatures through the Assinafy MCP tools. Use when the user wants a PDF or saved template signed, asks who has signed, wants a reminder sent, needs a signed (certificated) copy, wants a signature hash verified, or manages Assinafy signer contacts, including cost previews, Email, WhatsApp, biometric ID and liveness, and ICP-Brasil digital certificate (A1/A3) signing. Also use for Assinafy contract terms, amendments, renewals and lifecycle reminders (gestão de contratos, aditivos, renovação and vencimento).
 ---
 
-# Assinafy signing flow
+# Assinafy signing and contract flow
 
-The `assinafy` MCP server (`https://mcp.assinafy.com.br/mcp`) exposes 27 tools, one
-per operation; each accepts only its own arguments. Full request and response
+The `assinafy` MCP server (`https://mcp.assinafy.com.br/mcp`) exposes 29 tools. Signing tools keep their individual operations; two CLM tools
+group fixed read and write actions separately. Full request and response
 payloads for every tool are in [references/tools.md](references/tools.md); read the
 relevant section before building a non-trivial call.
 
@@ -35,6 +35,9 @@ relevant section before building a non-trivial call.
 | "Has everyone signed?" | `assinafy_list_documents` → `assinafy_get_document`, or `assinafy_show_document` |
 | "Tell me when it's signed" | ChatGPT Work watches the document through MCP Events on its own; elsewhere, check when asked and never poll |
 | Remind a signer | `assinafy_get_document` (signer not `completed`, already `notified`, in the active `step`) → `assinafy_resend_notification` |
+| Find contracts or review upcoming renewals | `assinafy_browse_contracts`; read [contract management](references/tools.md#contract-management) |
+| Set terms, link an amendment, renew or terminate | Read with `assinafy_browse_contracts`, then an authorized `assinafy_update_contract`; retain conflict guards |
+| Watch contract notices or lifecycle changes | Subscribe to `contract.activity` when Events are available; Assinafy owns scheduled owner emails |
 | Extend the deadline | `assinafy_set_assignment_expiration` |
 | Signed copy | `assinafy_get_document` (status `certificated`, artifact present) → `assinafy_download_document` with `artifact: "certificated"` |
 | Verify a signature hash | `assinafy_verify_document` |
@@ -101,7 +104,7 @@ feature refusal instead of repeating the call.
 
 ## Rules
 
-1. An explicit instruction to send, remind or delete authorizes that action for the
+1. An explicit instruction to send, remind, change contract terms, renew, terminate or delete authorizes that action for the
    named recipients; do not ask again. Ask only when a recipient, template role or
    document match is missing or ambiguous.
 2. Resolve names to IDs with the list and get tools and reuse IDs across turns. Do not ask the
@@ -121,3 +124,14 @@ feature refusal instead of repeating the call.
    and codes in results are sensitive; never use or expose them.
 7. Template authoring, webhook configuration and account administration are done in
    Assinafy, not through these tools.
+
+## Contract lifecycle
+
+Read [contract management](references/tools.md#contract-management) before a CLM
+write. Reuse the current `updated_at` and, for renewals, `term`. A conflict requires
+a fresh read and review; a timeout requires inspecting current terms and activities.
+For a signed amendment, set the delta on a separate document linked to the parent
+and let Assinafy apply it after certification. Contract dates differ from signing
+deadlines. Assinafy schedules owner notices and auto-renewal; Events report actual
+activities while the client keeps its subscription refreshed. Read current terms
+before acting on an alert, which grants no permission for another write or email.

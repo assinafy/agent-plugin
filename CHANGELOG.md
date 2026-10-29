@@ -4,6 +4,15 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-28
+
+### Added
+
+- Contract browsing with an MCP app, including upcoming renewals and related amendments.
+- Authorized contract term updates, renewals and termination through two CLM tools (29 tools total).
+- Contract lifecycle alerts through MCP Events, using Assinafy’s scheduled reminders and auto-renewal.
+- Conflict and retry guidance for contract changes and signed amendments.
+
 ## [1.2.3] - 2026-10-28
 
 ### Added
@@ -83,6 +92,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.3.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.0
 [1.2.3]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.3
 [1.2.2]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.2
 [1.2.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.1

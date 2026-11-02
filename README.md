@@ -272,8 +272,8 @@ assinatura e códigos nunca aparecem na conversa.
 - "O convite chegou para o Bruno?" O assistente lê o histórico de entrega por e-mail nos
   dados do signatário no documento (`assinafy_get_document`) e os detalhes de entrega
   por WhatsApp (`assinafy_list_whatsapp_notifications`).
-- "O que aconteceu com este documento?" O assistente mostra a linha do tempo de eventos
-  (`assinafy_list_document_activities`).
+- "O que aconteceu com este documento?" O assistente mostra a linha do tempo paginada,
+  começando pelos eventos mais novos (`assinafy_list_document_activities`).
 
 ### 6. Lembre ou altere o prazo
 
@@ -281,10 +281,12 @@ assinatura e códigos nunca aparecem na conversa.
   etapa dela está ativa) e envia um lembrete
   (`assinafy_resend_notification`). Cada lembrete pode consumir créditos; o
   assistente não repete só porque nada mudou.
-- **Prorrogar**: o assistente altera a expiração sem notificar ninguém
-  (`assinafy_set_assignment_expiration`).
+- **Alterar ou remover**: o assistente define uma data ou data e hora ISO 8601, ou
+  remove a expiração, sem notificar ninguém (`assinafy_set_assignment_expiration`).
+  Uma data isolada significa 23:59 UTC; data e hora sem fuso usam UTC.
 - **Corrigir um contato**: o assistente atualiza e-mail, telefone ou documento de
-  identificação autorizado (`assinafy_update_signer`).
+  identificação autorizado, ou limpa um deles quando solicitado
+  (`assinafy_update_signer`).
   A Assinafy bloqueia a troca de um canal que o signatário já verificou em
   um documento não concluído. Trocar um canal não verificado invalida links
   anteriores; o assistente só reenvia o convite se você pedir.
@@ -413,7 +415,7 @@ Os schemas e exemplos completos estão em
 | `assinafy_review_signature_request` | Leitura; cartão de revisão |
 | `assinafy_place_fields` | Leitura; cartão com editor de campos |
 | `assinafy_resend_notification` | Envia um lembrete |
-| `assinafy_set_assignment_expiration` | Altera o prazo |
+| `assinafy_set_assignment_expiration` | Altera ou remove o prazo |
 | `assinafy_list_signers` | Leitura |
 | `assinafy_get_signer` | Leitura |
 | `assinafy_create_signer` | Escrita; sem convites |

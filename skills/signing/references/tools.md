@@ -8,7 +8,7 @@ their base64 is only in `structuredContent`, with a short text summary. Response
 below show the JSON. IDs, names, emails and dates are fictional.
 
 For every complete input and response schema, including optional fields and cost
-previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.4.0;
+previews, read [tool-payloads.json](tool-payloads.json). It matches MCP server v3.4.1;
 the sections below provide the conversational flow and representative payloads.
 
 `account_id` is optional everywhere it appears. The workspace comes from the OAuth
@@ -17,7 +17,8 @@ grant; a value that differs from the grant is rejected.
 ## Conventions
 
 - **Signing tools keep one operation each**; the two CLM tools group fixed read and write actions separately. Each accepts only its documented arguments.
-- **Timestamps** are RFC 3339 (`2026-12-31T23:59:59Z`).
+- **Timestamps** returned by Assinafy are RFC 3339 (`2026-12-31T23:59:59Z`).
+  Assignment expiry input accepts an ISO 8601 date or date-time as documented below.
 - **Lists** return `{"data": [...], "meta": {...}}`; `meta` comes from Assinafy's
   pagination headers and is omitted when absent. Pages start at 1, `per_page` max 100.
 - **Errors** return `isError: true` with one text block:
@@ -96,6 +97,8 @@ Returned by `assinafy_get_document`, `assinafy_list_documents` items,
   "signing_url": "https://app.assinafy.com.br/sign/1f0a2b3c4d5e6f708192a3b4c5d6",
   "assignment": {
     "id": "3b0c1d2e3f405162738495a6b7c8",
+    "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6",
+    "created_at": "2026-10-10T13:42:38Z",
     "sender_email": "sender@example.com",
     "method": "virtual",
     "expires_at": "2026-12-31T23:59:59Z",
@@ -146,7 +149,10 @@ Returned by `assinafy_get_document`, `assinafy_list_documents` items,
   `assinafy_create_assignment` and `assinafy_rename_document` return Assinafy's
   response unchanged, including nulls, `government_id`, `items` and `signing_urls`.
 - `artifacts` gains `certificated`, `certificate-page` and `bundle` (and `pades` where
-  enabled) after certification. `is_closed` becomes `true`.
+  enabled) after certification. `is_closed` becomes `true`; `verification_code` and
+  `verification_url` identify the public certificate verification. Workspace detail
+  responses include `has_contract` when contract tracking is available; an omitted
+  key means unknown.
 - For `collect` assignments, `items` lists each placement: `page`, `signer`, `field`,
   `display_settings`, `value`, `completed`.
 - `decline_reason` and `declined_by` are set when a signer rejects.
@@ -280,12 +286,15 @@ Response: a [Document](#document).
 API: `GET /v1/documents/{documentId}/activities`
 
 Required: `document_id`
-Optional: none
+Optional: `page`, `per_page`, `sort`
+
+Pages start at 1 and contain 20 activities by default, up to 100. `sort` is `-id`
+(default, newest first) or `id` (oldest first); a page past the end has empty `data`.
 
 Request:
 
 ```json
-{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6"}
+{"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "sort": "-id", "page": 1, "per_page": 20}
 ```
 
 Response (newest first; `payload` varies by event, `origin` is `null` for system events):
@@ -309,7 +318,8 @@ Response (newest first; `payload` varies by event, `origin` is `null` for system
       "origin": {"ip": "203.0.113.10", "user-agent": "Assinafy-MCP"},
       "created_at": "2026-10-10T13:42:23Z"
     }
-  ]
+  ],
+  "meta": {"current_page": 1, "last_page": 1, "per_page": 20, "total": 2}
 }
 ```
 
@@ -696,6 +706,10 @@ API: `PUT /v1/documents/{documentId}/assignments/{assignmentId}/reset-expiration
 Required: `document_id`, `assignment_id`, `expires_at`
 Optional: none
 
+`expires_at` is an ISO 8601 date or date-time at least one hour in the future, or
+`null` to remove the deadline. A date alone means 23:59 UTC that day; a date-time
+without an offset is UTC, while an explicit offset is honored.
+
 Request:
 
 ```json
@@ -703,8 +717,8 @@ Request:
 ```
 
 Response: the updated assignment (as in `assinafy_create_assignment`, omitting null or
-empty optional fields) with the new
-`expires_at`. No reminder is sent.
+empty optional fields) with the new `expires_at`, or without it after removal. No
+reminder is sent.
 
 ---
 
@@ -787,6 +801,8 @@ Optional: `full_name`, `email`, `whatsapp_phone_number`, `account_id`, `governme
 `government_id` saves an authorized CPF or CNPJ on this contact. The API normalizes
 and validates it. Use a valid CPF before biometric verification, or CPF/CNPJ before
 certificate signing; handle the value as sensitive contact data.
+Only supplied fields change. Send `null` or an empty string to clear `email`,
+`whatsapp_phone_number` or `government_id`; `full_name` cannot be cleared.
 `email` and `whatsapp_phone_number` cannot change while that channel is verified on an
 in-flight document (`400` naming the documents). Changing an unverified channel
 invalidates earlier links and codes; resend only after the correction succeeds.

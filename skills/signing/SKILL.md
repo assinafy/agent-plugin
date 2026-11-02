@@ -38,7 +38,7 @@ relevant section before building a non-trivial call.
 | Find contracts or review upcoming renewals | `assinafy_browse_contracts`; read [contract management](references/tools.md#contract-management) |
 | Set terms, link an amendment, renew or terminate | Read with `assinafy_browse_contracts`, then an authorized `assinafy_update_contract`; retain conflict guards |
 | Watch contract notices or lifecycle changes | Subscribe to `contract.activity` when Events are available; Assinafy owns scheduled owner emails |
-| Extend the deadline | `assinafy_set_assignment_expiration` |
+| Change or remove the deadline | `assinafy_set_assignment_expiration` |
 | Signed copy | `assinafy_get_document` (status `certificated`, artifact present) → `assinafy_download_document` with `artifact: "certificated"` |
 | Verify a signature hash | `assinafy_verify_document` |
 | Delete a document | `assinafy_get_document` → `assinafy_delete_document`, only on explicit request |
@@ -85,6 +85,12 @@ a valid CPF; a certificate requires the matching person's e-CPF or company's
 e-CNPJ. Handle identity data only for the authorized contact operation. The human
 completes certificate signing, ID photos and liveness in Assinafy. Report a plan
 feature refusal instead of repeating the call.
+
+For a requested deadline, `assinafy_set_assignment_expiration` accepts an ISO 8601
+date or date-time at least one hour ahead; a date means 23:59 UTC and a date-time
+without an offset is UTC. Send `expires_at: null` only when the user asks to remove
+the deadline. Likewise, clear a contact's email, WhatsApp number or government ID
+with `null` or an empty string only when explicitly requested.
 
 ## Document status
 

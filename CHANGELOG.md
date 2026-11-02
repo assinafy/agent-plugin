@@ -4,6 +4,16 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-11-02
+
+### Changed
+
+- Document activity history supports pagination and newest- or oldest-first order.
+- Assignment deadlines accept ISO 8601 dates or date-times and can be removed.
+- Optional signer email, WhatsApp number and government ID can be cleared.
+- Document results expose public verification details and contract availability;
+  assignment results expose document IDs and creation times.
+
 ## [1.3.0] - 2026-10-28
 
 ### Added
@@ -92,6 +102,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.3.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.1
 [1.3.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.0
 [1.2.3]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.3
 [1.2.2]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.2

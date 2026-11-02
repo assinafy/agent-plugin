@@ -265,7 +265,8 @@ never shown in the chat.
 - "Did the invitation reach Bruno?" the assistant reads the email delivery history in the
   document's signer records (`assinafy_get_document`) and WhatsApp delivery details
   (`assinafy_list_whatsapp_notifications`).
-- "What happened with this document?" the assistant shows the event timeline (`assinafy_list_document_activities`).
+- "What happened with this document?" the assistant shows the paged event timeline,
+  newest first (`assinafy_list_document_activities`).
 
 ### 6. Remind or change the deadline
 
@@ -273,10 +274,11 @@ never shown in the chat.
   step is active), then sends one reminder
   (`assinafy_resend_notification`). Each reminder may use credits; the assistant
   doesn't repeat it just because nothing changed.
-- **Extend**: The assistant changes the expiry without notifying anyone
-  (`assinafy_set_assignment_expiration`).
+- **Change or remove**: The assistant sets an ISO 8601 date or date-time, or removes
+  the expiry, without notifying anyone (`assinafy_set_assignment_expiration`). A date
+  alone means 23:59 UTC; a date-time without an offset is UTC.
 - **Fix a contact**: The assistant updates the email, phone or authorized
-  government ID (`assinafy_update_signer`).
+  government ID, or clears one when asked (`assinafy_update_signer`).
   Assinafy blocks changing a channel that the signer already verified on an
   unfinished document. Changing an unverified channel invalidates earlier links;
   the assistant sends a reminder afterwards only if you ask.
@@ -404,7 +406,7 @@ Complete schemas and examples are in
 | `assinafy_review_signature_request` | Read; review card |
 | `assinafy_place_fields` | Read; field editor card |
 | `assinafy_resend_notification` | Sends a reminder |
-| `assinafy_set_assignment_expiration` | Changes the deadline |
+| `assinafy_set_assignment_expiration` | Changes or removes the deadline |
 | `assinafy_list_signers` | Read |
 | `assinafy_get_signer` | Read |
 | `assinafy_create_signer` | Write; no invitations |

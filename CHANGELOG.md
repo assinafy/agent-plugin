@@ -4,6 +4,16 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.2] - 2026-11-11
+
+### Changed
+
+- Signing guidance uses current workspace cost estimates and recognizes unlimited balances.
+- Reminder previews document their own cost response without document charges.
+- Response references include delivery stages, nullable signing links and certification timestamps.
+- Pagination guidance follows the API's 50-record limit and returned metadata.
+- Shorter Portuguese and English guides retain installation and the complete signing flow.
+
 ## [1.3.1] - 2026-11-02
 
 ### Changed
@@ -102,6 +112,7 @@ All notable changes to this plugin are documented here. The format follows
 - README in Portuguese and English covering installation, sign-in, the complete
   signing flow, signer experience, troubleshooting and other MCP clients.
 
+[1.3.2]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.2
 [1.3.1]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.1
 [1.3.0]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.3.0
 [1.2.3]: https://github.com/assinafy/agent-plugin/releases/tag/assinafy--v1.2.3

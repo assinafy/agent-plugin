@@ -518,7 +518,7 @@
       "responseExample": {
         "data": [
           {
-            "sent_at": 1,
+            "sent_at": "2026-10-10T13:42:38Z",
             "header": "Example",
             "body": "Example",
             "buttons": [
@@ -1980,7 +1980,7 @@
             "type": "object",
             "properties": {
               "cost_estimate": {
-                "$ref": "#/$defs/CostEstimate"
+                "$ref": "#/$defs/ResendCostEstimate"
               }
             },
             "required": [
@@ -2012,25 +2012,16 @@
       },
       "estimateResponseExample": {
         "cost_estimate": {
-          "documents": 1,
-          "credits": 0,
-          "needs_extra_document": false,
-          "extra_document_cost": 0,
-          "total_credits": 0,
+          "total": 0,
           "breakdown": [
             {
-              "code": "NotificationEmail",
-              "name": "Email Notification",
-              "cost": 0,
-              "quantity": 1,
-              "unit_cost": 0
+              "code": "NotificationEmailResend",
+              "name": "Email Notification Resend",
+              "cost": 0
             }
           ],
-          "document_balance": 10,
           "credit_balance": 20,
-          "has_sufficient_resources": true,
-          "blocking_reason": null,
-          "message": null
+          "has_sufficient_credits": true
         }
       },
       "estimateApi": {
@@ -3075,7 +3066,8 @@
         "completed_at": "2030-01-01T00:00:00Z",
         "verified_at": "2030-01-01T00:00:00Z",
         "is_valid": true,
-        "message": "Example"
+        "message": "Example",
+        "certificated_at": "2030-01-01T00:00:00Z"
       },
       "api": {
         "method": "GET",
@@ -3440,7 +3432,7 @@
                       "type": "string"
                     },
                     "verification_method": {
-                  "description": "How the signer's identity is verified before signing. `Email` (default) sends a one-time code to the signer's email; `Whatsapp` sends the code over WhatsApp — the verification itself is not billed, but it requires the WhatsApp notification channel, so the signer costs 0.45 credits (available only on paid subscriptions); `DigitalCertificate` has the signer sign with their own ICP-Brasil certificate (A1/A3) — it requires `method: virtual`, the Digital Certificate feature, a CPF or CNPJ in `government_id`, must be alone in its signing step, and is charged 0.5 credits per signer. A CPF requires that person's certificate (an e-CPF, or an e-CNPJ naming them as legal representative); a CNPJ requires an e-CNPJ for that company, from any of its representatives. `IdDocumentFaceMatchBasic` verifies the signer from a photo of their government ID, a photo of them holding it and a liveness check — it requires the ID Document + Face Match feature, the signer must have a valid CPF in `government_id`, and is charged a per-signer fee. Omit to default to `Email`.",
+                      "description": "How the signer's identity is verified before signing. `Email` (default) sends a one-time code to the signer's email; `Whatsapp` sends the code over WhatsApp — the verification itself is not billed, but it requires the WhatsApp notification channel, so the signer costs 0.45 credits (available only on paid subscriptions); `DigitalCertificate` has the signer sign with their own ICP-Brasil certificate (A1/A3) — it requires `method: virtual`, the Digital Certificate feature, a CPF or CNPJ in `government_id`, must be alone in its signing step, and is charged 0.5 credits per signer. A CPF requires that person's certificate (an e-CPF, or an e-CNPJ naming them as legal representative); a CNPJ requires an e-CNPJ for that company, from any of its representatives. `IdDocumentFaceMatchBasic` verifies the signer from a photo of their government ID, a photo of them holding it and a liveness check — it requires the ID Document + Face Match feature, the signer must have a valid CPF in `government_id`, and is charged a per-signer fee. Omit to default to `Email`.",
                       "type": "string",
                       "enum": [
                         "Email",
@@ -3914,7 +3906,7 @@
                       "type": "string"
                     },
                     "verification_method": {
-                  "description": "How the signer's identity is verified before signing. `Email` (default) sends a one-time code to the signer's email; `Whatsapp` sends the code over WhatsApp — the verification itself is not billed, but it requires the WhatsApp notification channel, so the signer costs 0.45 credits (available only on paid subscriptions); `DigitalCertificate` has the signer sign with their own ICP-Brasil certificate (A1/A3) — it requires `method: virtual`, the Digital Certificate feature, a CPF or CNPJ in `government_id`, must be alone in its signing step, and is charged 0.5 credits per signer. A CPF requires that person's certificate (an e-CPF, or an e-CNPJ naming them as legal representative); a CNPJ requires an e-CNPJ for that company, from any of its representatives. `IdDocumentFaceMatchBasic` verifies the signer from a photo of their government ID, a photo of them holding it and a liveness check — it requires the ID Document + Face Match feature, the signer must have a valid CPF in `government_id`, and is charged a per-signer fee. Omit to default to `Email`.",
+                      "description": "How the signer's identity is verified before signing. `Email` (default) sends a one-time code to the signer's email; `Whatsapp` sends the code over WhatsApp — the verification itself is not billed, but it requires the WhatsApp notification channel, so the signer costs 0.45 credits (available only on paid subscriptions); `DigitalCertificate` has the signer sign with their own ICP-Brasil certificate (A1/A3) — it requires `method: virtual`, the Digital Certificate feature, a CPF or CNPJ in `government_id`, must be alone in its signing step, and is charged 0.5 credits per signer. A CPF requires that person's certificate (an e-CPF, or an e-CNPJ naming them as legal representative); a CNPJ requires an e-CNPJ for that company, from any of its representatives. `IdDocumentFaceMatchBasic` verifies the signer from a photo of their government ID, a photo of them holding it and a liveness check — it requires the ID Document + Face Match feature, the signer must have a valid CPF in `government_id`, and is charged a per-signer fee. Omit to default to `Email`.",
                       "type": "string",
                       "enum": [
                         "Email",
@@ -5682,7 +5674,7 @@
           "type": "integer"
         },
         "credits": {
-          "description": "Total notification credits needed.",
+          "description": "Sum of notification, digital-certificate and identity-verification costs; excludes the extra document.",
           "type": "number"
         },
         "needs_extra_document": {
@@ -5703,10 +5695,18 @@
           }
         },
         "document_balance": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Null when this balance is unlimited."
         },
         "credit_balance": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Null when this balance is unlimited."
         },
         "has_sufficient_resources": {
           "type": "boolean"
@@ -5730,7 +5730,20 @@
           ]
         }
       },
-      "type": "object"
+      "type": "object",
+      "required": [
+        "documents",
+        "credits",
+        "needs_extra_document",
+        "extra_document_cost",
+        "total_credits",
+        "breakdown",
+        "document_balance",
+        "credit_balance",
+        "has_sufficient_resources",
+        "blocking_reason",
+        "message"
+      ]
     },
     "CostEstimateBreakdownItem": {
       "properties": {
@@ -6015,6 +6028,14 @@
         "message": {
           "description": "Reason when not valid.",
           "type": "string"
+        },
+        "certificated_at": {
+          "description": "First certification event time, or null when unavailable. verified_at is the time of this check.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
         }
       },
       "type": "object"
@@ -6089,6 +6110,8 @@
           "type": "string",
           "enum": [
             "sent",
+            "delivered",
+            "opened",
             "failed"
           ]
         },
@@ -6201,7 +6224,13 @@
           "type": "string"
         },
         "url": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "embedded": {
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -6368,8 +6397,9 @@
       "description": "A rendered WhatsApp notification sent for an assignment, split into header/body/buttons as the signer would see them.",
       "properties": {
         "sent_at": {
-          "description": "Unix timestamp when sent.",
-          "type": "integer"
+          "description": "When the message was sent (RFC 3339).",
+          "type": "string",
+          "format": "date-time"
         },
         "header": {
           "type": "string"
@@ -6632,6 +6662,50 @@
         "resource",
         "document_id",
         "status"
+      ]
+    },
+    "ResendCostEstimate": {
+      "description": "Credits a reminder to one signer will take, and whether the account can pay for it. A reminder uses no document.",
+      "properties": {
+        "total": {
+          "description": "Sum of the `breakdown` costs.",
+          "type": "number"
+        },
+        "breakdown": {
+          "type": "array",
+          "items": {
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "cost": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "credit_balance": {
+          "description": "Credits available. `null` when the account's credits are not limited.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "has_sufficient_credits": {
+          "description": "Whether the reminder would pass its credit check now: the check the reminder itself makes, so a contract that allows overage passes with a low `credit_balance`, and a plan whose payment is pending doesn't, whatever the balance.",
+          "type": "boolean"
+        }
+      },
+      "type": "object",
+      "required": [
+        "total",
+        "breakdown",
+        "credit_balance",
+        "has_sufficient_credits"
       ]
     }
   }

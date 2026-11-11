@@ -50,13 +50,15 @@ Set per signer in `assinafy_create_assignment`, `assinafy_create_document_from_t
 
 | `verification_method` | Requirements | Credits per signer |
 |---|---|---|
-| `Email` (default) | Signer has an email | Included |
-| `Whatsapp` | Signer has `whatsapp_phone_number` (E.164); WhatsApp notification; paid plan | 0.45 (WhatsApp notification) |
-| `DigitalCertificate` | `method: "virtual"`; ICP-Brasil A1 or A3 certificate; CPF/CNPJ saved in `government_id`; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | 0.5 plus the notification channel |
+| `Email` (default) | Signer has an email | Use the cost preview |
+| `Whatsapp` | Signer has `whatsapp_phone_number` (E.164); WhatsApp notification; paid plan | Use the cost preview |
+| `DigitalCertificate` | `method: "virtual"`; ICP-Brasil A1 or A3 certificate; CPF/CNPJ saved in `government_id`; alone in its `step` (with other signers, set `step` on everyone); Digital Certificate feature enabled | Use the cost preview |
 | `IdDocumentFaceMatchBasic` | ID photos and liveness; valid CPF saved in `government_id`; ID Document + Face Match feature enabled | Use the cost preview |
 
-Each signature request uses one plan document, or 1 credit once exhausted. Use the
-API's cost preview for current costs, balances and blocking reasons; estimates do
+Use the API's cost preview for plan-specific costs, balances and blocking reasons;
+null balances mean unlimited. Reminder previews use `total` and
+`has_sufficient_credits`; signature previews use `total_credits` and
+`has_sufficient_resources`. Estimates do
 not reserve credits. A PDF preview uploads and retains its document; reuse that ID
 with `assinafy_create_assignment` to send. Other previews create no records or
 messages. `estimate_only` is not accepted by review or placement cards.
@@ -115,9 +117,12 @@ with `null` or an empty string only when explicitly requested.
    document match is missing or ambiguous.
 2. Resolve names to IDs with the list and get tools and reuse IDs across turns. Do not ask the
    user for technical identifiers, and keep IDs and base64 out of replies.
+   Follow returned pagination metadata; the API caps ordinary lists at 50 records.
 3. Inspect before writing: never upload a document that already has an ID, never create
    a second assignment for a document that has one, and confirm a signer is pending
    before a reminder. Each invitation and reminder can consume credits.
+   `is_sent` does not prove delivery: inspect notification history for `delivered`,
+   `opened` or `failed` before reporting that an invitation arrived.
 4. Writes are not retried automatically and composite calls are not transactional. When
    an error names a retained `document_id`, inspect it and continue with
    `assinafy_create_assignment` instead of uploading again.

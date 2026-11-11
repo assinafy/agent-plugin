@@ -20,7 +20,9 @@ grant; a value that differs from the grant is rejected.
 - **Timestamps** returned by Assinafy are RFC 3339 (`2026-12-31T23:59:59Z`).
   Assignment expiry input accepts an ISO 8601 date or date-time as documented below.
 - **Lists** return `{"data": [...], "meta": {...}}`; `meta` comes from Assinafy's
-  pagination headers and is omitted when absent. Pages start at 1, `per_page` max 100.
+  pagination headers and is omitted when absent. Pages start at 1. The MCP accepts
+  `per_page` up to 100, but ordinary API lists cap results at 50 (20 by default).
+  Follow returned `meta.per_page` and `meta.last_page` instead of assuming the requested size.
 - **Errors** return `isError: true` with one text block:
   - API failure: `API error 404: Página não encontrada.` (Assinafy messages are in
     Portuguese). A missing permission appends the challenge:
@@ -36,10 +38,14 @@ grant; a value that differs from the grant is rejected.
 ## Cost previews
 
 Set `estimate_only: true` on the existing PDF send, assignment, template or reminder
-tool. Successful preview responses return `{cost_estimate: {...}}`. Check
+tool. Successful preview responses return `{cost_estimate: {...}}`. For signatures, check
 `has_sufficient_resources`, `blocking_reason`, balances and `total_credits` before
 sending. `blocking_reason` is null when no resource condition blocks the request.
 Estimates reserve nothing; Assinafy rechecks eligibility and balances at send time.
+Null `document_balance` or `credit_balance` means unlimited, not zero. Prices depend
+on the workspace's plan; use the returned breakdown instead of hard-coded rates.
+Reminder previews use `total`, `credit_balance` and `has_sufficient_credits` and
+consume no document; they do not return the signature estimate's balance fields.
 
 | Tool | Preview behavior |
 |---|---|
@@ -183,15 +189,16 @@ Used by `assinafy_create_assignment`, `assinafy_review_signature_request` and `a
 | `notification_methods` | no | Exactly one compatible channel: `Email` or `Whatsapp`; inferred when omitted |
 | `step` | no | Signing order from 1, contiguous; set on every signer or none. Same step signs in parallel |
 
-- Every request uses one document from the plan allowance, or 1 credit once exhausted.
+- Use the cost preview for document allowance and any extra-document charge.
 - `Whatsapp` verification needs the WhatsApp channel and a paid plan; the WhatsApp
-  notification costs 0.45 credits per signer.
+  notification is charged at the rate returned by the estimate.
 - `DigitalCertificate` signs with the signer's ICP-Brasil A1 or A3 certificate. It needs
   `method: "virtual"`, the Digital Certificate feature, a CPF or CNPJ already
   registered on the signer's
   contact (`government_id` in `assinafy_get_signer`, saved through an authorized
   create/update contact call or in Assinafy), and the signer alone in its step, so give every signer a
-  `step` when others sign too. 0.5 credits per signer plus its notification channel.
+  `step` when others sign too. Its cost includes certificate signing and notification;
+  use the current estimate for the workspace.
   A CPF needs that person's e-CPF (or an e-CNPJ naming them as legal representative);
   a CNPJ needs that company's e-CNPJ.
 - `IdDocumentFaceMatchBasic` requires its account feature and a valid CPF in
@@ -288,7 +295,7 @@ API: `GET /v1/documents/{documentId}/activities`
 Required: `document_id`
 Optional: `page`, `per_page`, `sort`
 
-Pages start at 1 and contain 20 activities by default, up to 100. `sort` is `-id`
+Pages start at 1 and contain 20 activities by default, capped by the API at 50. `sort` is `-id`
 (default, newest first) or `id` (oldest first); a page past the end has empty `data`.
 
 Request:
@@ -339,7 +346,7 @@ Request:
 {"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8"}
 ```
 
-Response (`sent_at` is a Unix timestamp; in sandbox, messages are simulated):
+Response (`sent_at` is an RFC 3339 timestamp; in sandbox, messages are simulated):
 
 ```json
 {
@@ -347,7 +354,7 @@ Response (`sent_at` is a Unix timestamp; in sandbox, messages are simulated):
     {
       "signer_id": "6e0f102132435465768798a9bacb",
       "phone_number": "+5511900000000",
-      "sent_at": 1791639758,
+      "sent_at": "2026-10-10T13:42:38Z",
       "header": "Documento para assinatura: Contrato de Servicos.pdf",
       "body": "Olá, Bruno Example. Você recebeu um documento para assinar.",
       "buttons": [{"text": "Abrir documento"}]
@@ -693,10 +700,17 @@ Request:
 {"document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "assignment_id": "3b0c1d2e3f405162738495a6b7c8", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
 ```
 
-Response (`is_sent` means delivered to the channel, not signed):
+Response (`is_sent` reports sending, not confirmed delivery or signing; inspect
+notification history for `sent`, `delivered`, `opened` or `failed`):
 
 ```json
 {"is_sent": true, "document_id": "1f0a2b3c4d5e6f708192a3b4c5d6", "signer_id": "4c0d1e2f30415263748596a7b8c9"}
+```
+
+With `estimate_only: true`, no reminder is sent. The response uses reminder costs:
+
+```json
+{"cost_estimate":{"total":0,"breakdown":[{"code":"NotificationEmailResend","name":"Email Notification Resend","cost":0}],"credit_balance":20,"has_sufficient_credits":true}}
 ```
 
 ### `assinafy_set_assignment_expiration`
@@ -1035,6 +1049,7 @@ Response (valid):
   "signer_count": "2",
   "completed_count": 2,
   "completed_at": "2026-10-11T09:15:00Z",
+  "certificated_at": "2026-10-11T09:15:04Z",
   "verified_at": "2026-10-12T10:00:00Z",
   "message": ""
 }
@@ -1045,6 +1060,9 @@ Response (unknown or unsigned; always HTTP 200):
 ```json
 {"id": null, "hash": "0000000000000000000000000000000000000000", "is_valid": false, "status": null, "agreement_code": null, "signer_count": null, "completed_count": null, "page_count": null, "completed_at": null, "verified_at": "2026-10-10T13:41:52Z", "message": "Documento não assinado ou não encontrado."}
 ```
+
+`completed_at` is the last signature time; `certificated_at` is the first certification
+event time, or null if unavailable. `verified_at` is when this verification ran.
 
 ### `assinafy_delete_document`
 
